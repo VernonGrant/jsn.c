@@ -17,11 +17,13 @@ enum jsn_token_types
 {
   JSN_TOC_NULL,
   JSN_TOC_NUMBER,
+  JSN_TOC_STRING,
   JSN_TOC_ARRAY_OPEN,
   JSN_TOC_ARRAY_CLOSE,
   JSN_TOC_OBJECT_OPEN,
   JSN_TOC_OBJECT_CLOSE,
   JSN_TOC_COMMA,
+  JSN_TOC_COLON
 };
 
 struct jsn_token
@@ -121,6 +123,23 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
       return token;
     }
 
+  /* Handle strings. */
+  if (tokenizer->src[tokenizer->cursor] == '"')
+    {
+      token.type = JSN_TOC_STRING;
+      tokenizer->cursor++;
+
+      while (isalpha (tokenizer->src[tokenizer->cursor]))
+        {
+          /* Perform operation. */
+          jsn_token_lexeme_append (&token, tokenizer->src[tokenizer->cursor]);
+          /* Move the cursor up. */
+          tokenizer->cursor++;
+        }
+
+      return token;
+    }
+
   /* Handle array opening. */
   if (tokenizer->src[tokenizer->cursor] == '[')
     {
@@ -148,6 +167,33 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
       return token;
     }
 
+    /* Handle object opening. */
+  if (tokenizer->src[tokenizer->cursor] == '{')
+    {
+      token.type = JSN_TOC_OBJECT_OPEN;
+      jsn_token_lexeme_append (&token, tokenizer->src[tokenizer->cursor]);
+      tokenizer->cursor++;
+      return token;
+    }
+
+  /* Handle object closing. */
+  if (tokenizer->src[tokenizer->cursor] == '}')
+    {
+      token.type = JSN_TOC_OBJECT_CLOSE;
+      jsn_token_lexeme_append (&token, tokenizer->src[tokenizer->cursor]);
+      tokenizer->cursor++;
+      return token;
+    }
+
+  /* Handle colon.*/
+  if (tokenizer->src[tokenizer->cursor] == ':')
+    {
+      token.type = JSN_TOC_COLON;
+      jsn_token_lexeme_append (&token, tokenizer->src[tokenizer->cursor]);
+      tokenizer->cursor++;
+      return token;
+    }
+
   /* Handle white spaces. */
   if (isspace (tokenizer->src[tokenizer->cursor]))
     {
@@ -166,7 +212,9 @@ enum jsn_node_type
 {
   /** \todo Handle exponents (1e-005). */
   JSN_NODE_NUMBER,
+  JSN_NODE_STRING,
   JSN_NODE_ARRAY,
+  JSN_NODE_OBJECT,
 };
 
 struct jsn_node
@@ -244,6 +292,12 @@ jsn_node_print (struct jsn_node *node, unsigned int indent)
     case JSN_NODE_ARRAY:
       printf ("%sType: %s\n", indent_str, "ARRAY");
       break;
+    case JSN_NODE_STRING:
+      printf ("%sType: %s\n", indent_str, "STRING");
+      break;
+    case JSN_NODE_OBJECT:
+      printf ("%sType: %s\n", indent_str, "OBJECT");
+      break;
     case JSN_NODE_NUMBER:
       printf ("%sType: %s\n", indent_str, "NUMBER");
       break;
@@ -283,6 +337,15 @@ struct jsn_node *jsn_parse_value (struct jsn_tokenizer *tokenizer,
                                   struct jsn_token token);
 
 struct jsn_node *
+jsn_parse_string (struct jsn_tokenizer *tokenizer, struct jsn_token token)
+{
+  /* The issue is that the token string pointer */
+  struct jsn_node *node = jsn_node_create (JSN_NODE_STRING);
+  node->value = token.lexeme;
+  return node;
+}
+
+struct jsn_node *
 jsn_parse_number (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
   /* The issue is that the token string pointer */
@@ -314,12 +377,15 @@ jsn_parse_array (struct jsn_tokenizer *tokenizer, struct jsn_token token)
   return node;
 }
 
-
 struct jsn_node *
 jsn_parse_object (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
   /* Attempting recursive method. */
-  struct jsn_node *node = jsn_node_create (JSN_NODE_ARRAY);
+  struct jsn_node *node = jsn_node_create (JSN_NODE_OBJECT);
+
+  /** \todo Think about how this should be implemented.  */
+
+  return node;
 }
 
 struct jsn_node *
@@ -329,6 +395,9 @@ jsn_parse_value (struct jsn_tokenizer *tokenizer, struct jsn_token token)
     {
     case JSN_TOC_NUMBER:
       return jsn_parse_number (tokenizer, token);
+      break;
+    case JSN_TOC_STRING:
+      return jsn_parse_string (tokenizer, token);
       break;
     case JSN_TOC_ARRAY_OPEN:
       return jsn_parse_array (tokenizer, token);
@@ -376,7 +445,7 @@ main (void)
   jsn_node_print (node, 0);
 
   /* This is our sample object node. */
-  struct jsn_node *node_obj = jsn_parse ("{\"my-key\":1}");
+  struct jsn_node *node_obj = jsn_parse ("{ \"mykey\" : 1 }");
   jsn_node_print (node_obj, 0);
 
   /* success */
