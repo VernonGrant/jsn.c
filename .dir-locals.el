@@ -1,4 +1,4 @@
 (
  (c-mode
-  (eval . (setq-local vg-c-clang-format-on-save t)))
+  (eval . (setq-local vg-c-clang-format-on-save nil)))
 )

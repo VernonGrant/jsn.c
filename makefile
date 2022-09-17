@@ -1,4 +1,4 @@
-GCC=gcc -g -O -Wall
+GCC=gcc -ggdb -Wall
 
 objects = json.o
 
@@ -8,8 +8,8 @@ build: $(objects)
 	$(GCC) -o ./bin/json $(objects)
 	./bin/json
 
-json.o:
-	$(GCC) -c ./json.c
+json.o: json.c
+	$(GCC) -c $<
 
 docs:
 	doxygen doxy
