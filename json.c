@@ -112,6 +112,8 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
   /* Get the number token. */
   if (isdigit (tokenizer->src[tokenizer->cursor]))
     {
+      /** \todo Handle different number types.  */
+
       token.type = JSN_TOC_NUMBER;
       while (isdigit (tokenizer->src[tokenizer->cursor]))
         {
@@ -129,13 +131,19 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
       token.type = JSN_TOC_STRING;
       tokenizer->cursor++;
 
-      while (isalpha (tokenizer->src[tokenizer->cursor]))
+      /** \todo Handle skipping escaped values.  */
+
+      /* while (isalpha (tokenizer->src[tokenizer->cursor])) */
+      while (tokenizer->src[tokenizer->cursor] != '"')
         {
           /* Perform operation. */
           jsn_token_lexeme_append (&token, tokenizer->src[tokenizer->cursor]);
           /* Move the cursor up. */
           tokenizer->cursor++;
         }
+
+      /* Move the past the ending quote. */
+      tokenizer->cursor++;
 
       return token;
     }
@@ -383,6 +391,49 @@ jsn_parse_object (struct jsn_tokenizer *tokenizer, struct jsn_token token)
   /* Attempting recursive method. */
   struct jsn_node *node = jsn_node_create (JSN_NODE_OBJECT);
 
+  /* While we haven't reached the end of the object. */
+  while(token.type != JSN_TOC_OBJECT_CLOSE) {
+
+    /* Get the key token */
+    struct jsn_token token_key = jsn_tokenizer_get_next_token (tokenizer);
+    if (token_key.type != JSN_TOC_STRING) {
+      /** \todo implement proper error codes. */
+      perror ("Undefined token as Object node key, maybe you left an extra comma after an object value.\n");
+      exit (-1);
+    }
+
+    /* Get the colon token */
+    struct jsn_token token_cln = jsn_tokenizer_get_next_token (tokenizer);
+    if (token_cln.type != JSN_TOC_COLON) {
+      perror ("Undefined token after key, did you forget a colon somewhere?.\n");
+      exit (-1);
+    }
+
+    /* Get the value token */
+    struct jsn_token token_val = jsn_tokenizer_get_next_token (tokenizer);
+
+    /* Create the new child node (recursive call). */
+    struct jsn_node *child_node = jsn_parse_value (tokenizer, token_val);
+    child_node->key = token_key.lexeme;
+
+    /* Append the node */
+    jsn_node_append_child(node, child_node);
+
+    /* Set the last token, if this token is a comma, then the next token should
+       be a string key, if not it will report errors above on the next
+       iteration.  */
+    token = jsn_tokenizer_get_next_token (tokenizer);
+  }
+
+  /* the tokenizer should just give me the next token. */
+  /*  */
+
+  /* Can we use the colon as a switch? */
+  /* - tokenizer gets the key (AKA, string). */
+  /* - tokenizer gets the value (pharse value.). */
+
+  /* While not the end of object token. */
+
   /** \todo Think about how this should be implemented.  */
 
   return node;
@@ -441,11 +492,20 @@ int
 main (void)
 {
   /* This is our sample array node. */
-  struct jsn_node *node = jsn_parse ("[1,[1,2]]");
-  jsn_node_print (node, 0);
+  /* struct jsn_node *node = jsn_parse ("[1,[1,2]]"); */
+  /* jsn_node_print (node, 0); */
+
+  /* Simple string. */
+  /* struct jsn_node *node_string = jsn_parse ("\"hello\""); */
+  /* jsn_node_print (node_string, 0); */
 
   /* This is our sample object node. */
-  struct jsn_node *node_obj = jsn_parse ("{ \"mykey\" : 1 }");
+  struct jsn_node *node_obj = jsn_parse ("{ \
+\"mykey\" : 123, \
+\"my other key\" : \"this is string!\", \
+\"my other key\" : [1,2,3,4,5,6], \
+\"my other key\" : {\"this is an inner obj\" : 3000} \
+}");
   jsn_node_print (node_obj, 0);
 
   /* success */
