@@ -6,14 +6,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Backus–Naur form: */
-/* Concept of the look ahead? */
+/** \todo Add UTF-8 support. */
 
 /* TOKENIZER:
  * --------------------------------------------------------------------------*/
 /* The tokenizer needs to return tokens of different types on demand. */
 
-enum jsn_token_types
+enum jsn_token_kind
 {
   JSN_TOC_NULL,
   JSN_TOC_NUMBER,
@@ -29,8 +28,8 @@ enum jsn_token_types
 struct jsn_token
 {
   unsigned int type;
+  unsigned long lexeme_len;
   char *lexeme;
-  unsigned long lexeme_size;
 };
 
 struct jsn_tokenizer
@@ -66,21 +65,22 @@ jsn_token_lexeme_append (struct jsn_token *token, char c)
   if (token->lexeme == NULL)
     {
       char *lexeme_ext = malloc (chunk_size * CHAR_BIT);
-      token->lexeme_size = chunk_size;
+      token->lexeme_len = chunk_size;
       token->lexeme = lexeme_ext;
     }
-  else if (token->lexeme_size < (strlen (token->lexeme) + 1))
+  else if (token->lexeme_len < (strlen (token->lexeme) + 1))
     {
       /* Keep pointer to old lexeme. */
       char *old_lexeme = token->lexeme;
 
       /* Allocate additional memory chunk. */
-      unsigned long int lexeme_new_size = (token->lexeme_size + chunk_size);
+      unsigned long int lexeme_new_size = (token->lexeme_len + chunk_size);
       char *lexeme_ext = malloc (lexeme_new_size * CHAR_BIT);
-      token->lexeme = memcpy (lexeme_ext, token->lexeme, token->lexeme_size * CHAR_BIT);
+      token->lexeme
+          = memcpy (lexeme_ext, token->lexeme, token->lexeme_len * CHAR_BIT);
 
       /* Set the new size. */
-      token->lexeme_size = lexeme_new_size;
+      token->lexeme_len = lexeme_new_size;
 
       /* Free old memory. */
       free (old_lexeme);
@@ -124,6 +124,8 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
         }
       return token;
     }
+
+  /** \todo Optimize the tokenizing process, below. */
 
   /* Handle strings. */
   if (tokenizer->src[tokenizer->cursor] == '"')
@@ -175,7 +177,7 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
       return token;
     }
 
-    /* Handle object opening. */
+  /* Handle object opening. */
   if (tokenizer->src[tokenizer->cursor] == '{')
     {
       token.type = JSN_TOC_OBJECT_OPEN;
@@ -219,6 +221,8 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
 enum jsn_node_type
 {
   /** \todo Handle exponents (1e-005). */
+  /** \todo Handle true. */
+  /** \todo Handle false. */
   JSN_NODE_NUMBER,
   JSN_NODE_STRING,
   JSN_NODE_ARRAY,
@@ -234,14 +238,13 @@ struct jsn_node
   struct jsn_node **children;
 };
 
-void jsn_node_print (struct jsn_node *node, unsigned int indent);
-
 struct jsn_node *
 jsn_node_create (enum jsn_node_type type)
 {
   /* Let's allocate some memory on the heap. */
   struct jsn_node *node = malloc (sizeof (struct jsn_node));
 
+  /* Set some sane defaults. */
   node->type = type;
   node->value = NULL;
   node->children_count = 0;
@@ -266,8 +269,6 @@ jsn_node_copy (struct jsn_node *dest, struct jsn_node *src)
 void
 jsn_node_append_child (struct jsn_node *parent, struct jsn_node *child)
 {
-  /** \todo Insure a deep copy is being made here of. */
-
   /* Increment children count. */
   parent->children_count++;
 
@@ -318,7 +319,7 @@ jsn_node_print (struct jsn_node *node, unsigned int indent)
     unsigned int i;
     for (i = 0; i < node->children_count; i++)
       {
-        /* Only implement this after the child appender has been added. */
+        /* Print out node children (recursive call). */
         jsn_node_print (node->children[i], indent + 4);
       }
   }
@@ -347,7 +348,6 @@ struct jsn_node *jsn_parse_value (struct jsn_tokenizer *tokenizer,
 struct jsn_node *
 jsn_parse_string (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
-  /* The issue is that the token string pointer */
   struct jsn_node *node = jsn_node_create (JSN_NODE_STRING);
   node->value = token.lexeme;
   return node;
@@ -356,7 +356,6 @@ jsn_parse_string (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 struct jsn_node *
 jsn_parse_number (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
-  /* The issue is that the token string pointer */
   struct jsn_node *node = jsn_node_create (JSN_NODE_NUMBER);
   node->value = token.lexeme;
   return node;
@@ -365,7 +364,7 @@ jsn_parse_number (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 struct jsn_node *
 jsn_parse_array (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
-  /* Attempting recursive method. */
+  /* Create our array node type. */
   struct jsn_node *node = jsn_node_create (JSN_NODE_ARRAY);
 
   /* While we are not at the end of the array, handle array tokens. */
@@ -373,7 +372,7 @@ jsn_parse_array (struct jsn_tokenizer *tokenizer, struct jsn_token token)
     {
       token = jsn_tokenizer_get_next_token (tokenizer);
 
-      /* Create the new child node (recursive). */
+      /* Create the new child node (recursive call). */
       struct jsn_node *child_node = jsn_parse_value (tokenizer, token);
 
       if (child_node != NULL)
@@ -388,53 +387,46 @@ jsn_parse_array (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 struct jsn_node *
 jsn_parse_object (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
-  /* Attempting recursive method. */
+  /* Create our object node type.. */
   struct jsn_node *node = jsn_node_create (JSN_NODE_OBJECT);
 
   /* While we haven't reached the end of the object. */
-  while(token.type != JSN_TOC_OBJECT_CLOSE) {
+  while (token.type != JSN_TOC_OBJECT_CLOSE)
+    {
 
-    /* Get the key token */
-    struct jsn_token token_key = jsn_tokenizer_get_next_token (tokenizer);
-    if (token_key.type != JSN_TOC_STRING) {
-      /** \todo implement proper error codes. */
-      perror ("Undefined token as Object node key, maybe you left an extra comma after an object value.\n");
-      exit (-1);
+      /* Get the key. */
+      struct jsn_token token_key = jsn_tokenizer_get_next_token (tokenizer);
+      if (token_key.type != JSN_TOC_STRING)
+        {
+          /** \todo implement proper error handling. */
+          perror ("Undefined token as Object node key, maybe you left an "
+                  "extra comma after an object value.\n");
+          exit (-1);
+        }
+
+      /* Get the colon. */
+      struct jsn_token token_cln = jsn_tokenizer_get_next_token (tokenizer);
+      if (token_cln.type != JSN_TOC_COLON)
+        {
+          /** \todo implement proper error handling. */
+          perror ("Undefined token after key, did you forget a colon "
+                  "somewhere?.\n");
+          exit (-1);
+        }
+
+      /* Get the value and create the new child node (recursive call). */
+      struct jsn_token token_val = jsn_tokenizer_get_next_token (tokenizer);
+      struct jsn_node *child_node = jsn_parse_value (tokenizer, token_val);
+      child_node->key = token_key.lexeme;
+
+      /* Append the child node. */
+      jsn_node_append_child (node, child_node);
+
+      /* Set the last token, if this token is a comma, then the next token
+         should be a string key, if not it will report errors above on the next
+         iteration.  */
+      token = jsn_tokenizer_get_next_token (tokenizer);
     }
-
-    /* Get the colon token */
-    struct jsn_token token_cln = jsn_tokenizer_get_next_token (tokenizer);
-    if (token_cln.type != JSN_TOC_COLON) {
-      perror ("Undefined token after key, did you forget a colon somewhere?.\n");
-      exit (-1);
-    }
-
-    /* Get the value token */
-    struct jsn_token token_val = jsn_tokenizer_get_next_token (tokenizer);
-
-    /* Create the new child node (recursive call). */
-    struct jsn_node *child_node = jsn_parse_value (tokenizer, token_val);
-    child_node->key = token_key.lexeme;
-
-    /* Append the node */
-    jsn_node_append_child(node, child_node);
-
-    /* Set the last token, if this token is a comma, then the next token should
-       be a string key, if not it will report errors above on the next
-       iteration.  */
-    token = jsn_tokenizer_get_next_token (tokenizer);
-  }
-
-  /* the tokenizer should just give me the next token. */
-  /*  */
-
-  /* Can we use the colon as a switch? */
-  /* - tokenizer gets the key (AKA, string). */
-  /* - tokenizer gets the value (pharse value.). */
-
-  /* While not the end of object token. */
-
-  /** \todo Think about how this should be implemented.  */
 
   return node;
 }
@@ -457,7 +449,7 @@ jsn_parse_value (struct jsn_tokenizer *tokenizer, struct jsn_token token)
       return NULL;
       break;
     case JSN_TOC_OBJECT_OPEN:
-      return jsn_parse_object(tokenizer, token);
+      return jsn_parse_object (tokenizer, token);
       break;
     case JSN_TOC_OBJECT_CLOSE:
       return NULL;
@@ -466,6 +458,7 @@ jsn_parse_value (struct jsn_tokenizer *tokenizer, struct jsn_token token)
       return NULL;
       break;
     default:
+      /** \todo implement proper error handling. */
       perror ("Undefined token found.\n");
       exit (-1);
       break;
@@ -478,10 +471,10 @@ jsn_parse (const char *src)
   /* Initialize our tokenizer, for this specific source string. */
   struct jsn_tokenizer tokenizer = jsn_tokenizer_init (src);
 
-  /* prime the tokenizer. */
+  /* Prime the tokenizer. */
   struct jsn_token token = jsn_tokenizer_get_next_token (&tokenizer);
 
-  /* We should handle some parsing, recursively. */
+  /* Start parsing, recursively. */
   return jsn_parse_value (&tokenizer, token);
 }
 
@@ -492,8 +485,8 @@ int
 main (void)
 {
   /* This is our sample array node. */
-  /* struct jsn_node *node = jsn_parse ("[1,[1,2]]"); */
-  /* jsn_node_print (node, 0); */
+  struct jsn_node *node = jsn_parse ("[1,[1,2]]");
+  jsn_node_print (node, 0);
 
   /* Simple string. */
   /* struct jsn_node *node_string = jsn_parse ("\"hello\""); */
@@ -502,7 +495,7 @@ main (void)
   /* This is our sample object node. */
   struct jsn_node *node_obj = jsn_parse ("{ \
 \"mykey\" : 123, \
-\"my other key\" : \"this is string!\", \
+\"my other key\" : \"this is string! Can we get even more.\", \
 \"my other key\" : [1,2,3,4,5,6], \
 \"my other key\" : {\"this is an inner obj\" : 3000} \
 }");
