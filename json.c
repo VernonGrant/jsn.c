@@ -74,13 +74,13 @@ jsn_token_lexeme_append (struct jsn_token *token, char c)
       char *old_lexeme = token->lexeme;
 
       /* Allocate additional memory chunk. */
-      unsigned long int lexeme_new_size = (token->lexeme_len + chunk_size);
-      char *lexeme_ext = malloc (lexeme_new_size * CHAR_BIT);
+      unsigned long int lexeme_new_len = (token->lexeme_len + chunk_size);
+      char *lexeme_ext = malloc (lexeme_new_len * CHAR_BIT);
       token->lexeme
           = memcpy (lexeme_ext, token->lexeme, token->lexeme_len * CHAR_BIT);
 
-      /* Set the new size. */
-      token->lexeme_len = lexeme_new_size;
+      /* Set the new length. */
+      token->lexeme_len = lexeme_new_len;
 
       /* Free old memory. */
       free (old_lexeme);
@@ -135,6 +135,7 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
 
       /** \todo Handle skipping escaped values.  */
 
+      /* This will keep adding bytes until the end of string is reached. */
       /* while (isalpha (tokenizer->src[tokenizer->cursor])) */
       while (tokenizer->src[tokenizer->cursor] != '"')
         {
@@ -252,18 +253,6 @@ jsn_node_create (enum jsn_node_type type)
   node->key = NULL;
 
   return node;
-}
-
-void
-jsn_node_free (struct jsn_node *node)
-{
-  /** \todo implement a free here. */
-}
-
-void
-jsn_node_copy (struct jsn_node *dest, struct jsn_node *src)
-{
-  /** \todo implement a deep copy here. */
 }
 
 void
@@ -488,18 +477,18 @@ main (void)
   struct jsn_node *node = jsn_parse ("[1,[1,2]]");
   jsn_node_print (node, 0);
 
-  /* Simple string. */
-  /* struct jsn_node *node_string = jsn_parse ("\"hello\""); */
-  /* jsn_node_print (node_string, 0); */
-
   /* This is our sample object node. */
   struct jsn_node *node_obj = jsn_parse ("{ \
 \"mykey\" : 123, \
-\"my other key\" : \"this is string! Can we get even more.\", \
+\"my other key\" : \"this is string! cónstàñt 家長專區 Can we get even more.\", \
 \"my other key\" : [1,2,3,4,5,6], \
 \"my other key\" : {\"this is an inner obj\" : 3000} \
 }");
   jsn_node_print (node_obj, 0);
+
+  /* printf("This is a UTF8 string: %s\n", u8"A cónstàñt"); */
+  printf("This is a UTF8 string: %s\n", u8"A cónstàñt 家長專區");
+  printf("This is a UTF8 string: %c\n", u'[');
 
   /* success */
   return 0;

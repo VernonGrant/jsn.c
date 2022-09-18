@@ -12,6 +12,7 @@ json.o: json.c
 	$(GCC) -c $<
 
 docs:
+	rm -R ./docs/
 	doxygen doxy
 
 clean:
