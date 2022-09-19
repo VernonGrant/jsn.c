@@ -15,5 +15,12 @@ docs:
 	rm -R ./docs/
 	doxygen doxy
 
+test: tests.o
+	$(GCC) -lcheck -o ./bin/test $<
+	./bin/test
+
+tests.o: tests.c
+	$(GCC) -lcheck -c $<
+
 clean:
 	rm $(objects)
