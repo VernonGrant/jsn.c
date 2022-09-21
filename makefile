@@ -11,6 +11,9 @@ build: $(objects)
 json.o: json.c
 	$(GCC) -c $<
 
+json.e: json.c
+	gcc -E $<
+
 docs:
 	rm -R ./docs/
 	doxygen doxy

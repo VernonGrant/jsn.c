@@ -1,5 +1,6 @@
 #include <check.h>
 #include <stdlib.h>
+#include "json.h"
 
 START_TEST (sample_test_here)
 {
@@ -23,7 +24,7 @@ Suite * sample_suite(void)
     tc_core = tcase_create("Core");
 
     tcase_add_test(tc_core, sample_test_here);
-    tcase_add_test(tc_core, sample_test_here);
+    tcase_add_test(tc_core, sample_test_here_here);
     suite_add_tcase(s, tc_core);
 
     return s;

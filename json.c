@@ -219,6 +219,7 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
  * --------------------------------------------------------------------------*/
 
 /* Nodes */
+
 enum jsn_node_type
 {
   /** \todo Handle exponents (1e-005). */
@@ -467,6 +468,25 @@ jsn_parse (const char *src)
   return jsn_parse_value (&tokenizer, token);
 }
 
+/* API Playground:
+ * --------------------------------------------------------------------------*/
+
+void jsn_set_int(jsn_handle handle, int value, ...) {
+  printf("Hey this a int call!\n");
+}
+
+void jsn_set_double(jsn_handle handle, double value, ...) {
+  printf("Hey this a double call!\n");
+}
+
+void jsn_set_bool(jsn_handle handle, _Bool value, ...) {
+  printf("Hey this a boolean call!\n");
+}
+
+void jsn_set_collection(jsn_handle handle, jsn_handle value, ...) {
+  printf("Hey this an array or object collection call!\n");
+}
+
 /* TESTING:
  * --------------------------------------------------------------------------*/
 
@@ -474,21 +494,24 @@ int
 main (void)
 {
   /* This is our sample array node. */
-  struct jsn_node *node = jsn_parse ("[1,[1,2]]");
-  jsn_node_print (node, 0);
+  jsn_handle handle_array = jsn_parse ("[1,[1,2]]");
+  /* jsn_node_print (node, 0); */
 
   /* This is our sample object node. */
-  struct jsn_node *node_obj = jsn_parse ("{ \
+  jsn_handle handle = jsn_parse ("{ \
 \"mykey\" : 123, \
-\"my other key\" : \"this is string! cónstàñt 家長專區 Can we get even more.\", \
+\"my other key\" : \"this is a UTF8 string! cónstàñt 家長專區.\", \
 \"my other key\" : [1,2,3,4,5,6], \
 \"my other key\" : {\"this is an inner obj\" : 3000} \
 }");
-  jsn_node_print (node_obj, 0);
 
-  /* printf("This is a UTF8 string: %s\n", u8"A cónstàñt"); */
-  printf("This is a UTF8 string: %s\n", u8"A cónstàñt 家長專區");
-  printf("This is a UTF8 string: %c\n", u'[');
+  jsn_node_print (handle, 0);
+
+  jsn_set(handle, 10, "my-key");
+  jsn_set(handle, 10.1, "my-key");
+  jsn_set(handle, JSN_TRUE, "my-key");
+  jsn_set(handle, JSN_FALSE, "my-key");
+  jsn_set(handle, handle_array, "my-key");
 
   /* success */
   return 0;
