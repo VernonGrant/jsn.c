@@ -471,20 +471,28 @@ jsn_parse (const char *src)
 /* API Playground:
  * --------------------------------------------------------------------------*/
 
-void jsn_set_int(jsn_handle handle, int value, ...) {
-  printf("Hey this a int call!\n");
+void
+jsn_set_int (jsn_handle handle, int value, ...)
+{
+  printf ("Hey this a int call!\n");
 }
 
-void jsn_set_double(jsn_handle handle, double value, ...) {
-  printf("Hey this a double call!\n");
+void
+jsn_set_double (jsn_handle handle, double value, ...)
+{
+  printf ("Hey this a double call!\n");
 }
 
-void jsn_set_bool(jsn_handle handle, _Bool value, ...) {
-  printf("Hey this a boolean call!\n");
+void
+jsn_set_bool (jsn_handle handle, _Bool value, ...)
+{
+  printf ("Hey this a boolean call!\n");
 }
 
-void jsn_set_collection(jsn_handle handle, jsn_handle value, ...) {
-  printf("Hey this an array or object collection call!\n");
+void
+jsn_set_collection (jsn_handle handle, jsn_handle value, ...)
+{
+  printf ("Hey this an array or object collection call!\n");
 }
 
 /* TESTING:
@@ -507,11 +515,12 @@ main (void)
 
   jsn_node_print (handle, 0);
 
-  jsn_set(handle, 10, "my-key");
-  jsn_set(handle, 10.1, "my-key");
-  jsn_set(handle, JSN_TRUE, "my-key");
-  jsn_set(handle, JSN_FALSE, "my-key");
-  jsn_set(handle, handle_array, "my-key");
+  jsn_set (handle, 10, "my-key");
+  jsn_set (handle, 10.1, "my-key");
+  jsn_set (handle, JSN_TRUE, "my-key");
+  jsn_set (handle, JSN_FALSE, "my-key");
+  jsn_set (handle, handle_array, "my-key");
+  jsn_set (handle, handle_array, "my-key");
 
   /* success */
   return 0;
