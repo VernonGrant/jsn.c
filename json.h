@@ -9,14 +9,6 @@
 struct jsn_node;
 typedef struct jsn_node *jsn_handle;
 
-/* The goal should be to:
-   - Parse a JSON file.
-   - Create elements.
-   - Read elements.
-   - Update elements.
-   - Delete elements.
-*/
-
 /* Generating a tree of nodes from. */
 
 jsn_handle jsn_from_file (const char *path);
@@ -25,9 +17,13 @@ jsn_handle jsn_from_string (const char *src);
 
 /* Exporting a tree of nodes. */
 
-void_handle jsn_to_file (jsn_handle handle);
+void jsn_to_file (jsn_handle handle);
 
-const char *jsn_to_string (jsn_handle handle);
+char *jsn_to_string (jsn_handle handle);
+
+/* Debugging. */
+
+void jsn_print(jsn_handle handle);
 
 /* Setting the values of nodes. */
 
@@ -42,18 +38,6 @@ _Generic((value),                                                              \
            _Bool : jsn_set_bool,                                               \
            jsn_handle : jsn_set_collection                                     \
            ) (handle, value __VA_OPT__ (, ) __VA_ARGS__)
+
 // clang-format on
-
-/* If some element is an array the new node get's pushed onto the end. */
-/* We automatically create objects via keys. */
-/* How about dealing with arrays? */
-
-/* jsn_set(handle, 10, "my-key"); */
-/* jsn_set(handle, 10.1, "my-key"); */
-/* jsn_set(handle, JSN_TRUE, "my-key"); */
-/* jsn_set(handle, JSN_FALSE, "my-key"); */
-/* jsn_set(handle, handle, "my-key"); */
-
-
-
 #endif

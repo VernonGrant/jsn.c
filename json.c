@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 /** \todo Add UTF-8 support. */
 
@@ -471,28 +472,63 @@ jsn_parse (const char *src)
 /* API Playground:
  * --------------------------------------------------------------------------*/
 
+void jsn_print(jsn_handle handle) {
+    assert("TODO: Implement this function.");
+}
+
+jsn_handle
+jsn_form_file (const char *path)
+{
+    assert("TODO: Implement this function.");
+}
+
+jsn_handle
+jsn_form_string (const char *src)
+{
+    /* Initialize our tokenizer, for this specific source string. */
+    struct jsn_tokenizer tokenizer = jsn_tokenizer_init (src);
+
+    /* Prime the tokenizer. */
+    struct jsn_token token = jsn_tokenizer_get_next_token (&tokenizer);
+
+    /* Start parsing, recursively. */
+    return jsn_parse_value (&tokenizer, token);
+}
+
+void
+jsn_to_file (jsn_handle handle)
+{
+    assert("TODO: Implement this function.");
+}
+
+char *
+jsn_to_string (jsn_handle handle)
+{
+    assert("TODO: Implement this function.");
+}
+
 void
 jsn_set_int (jsn_handle handle, int value, ...)
 {
-  printf ("Hey this a int call!\n");
+    assert("TODO: Implement this function.");
 }
 
 void
 jsn_set_double (jsn_handle handle, double value, ...)
 {
-  printf ("Hey this a double call!\n");
+    assert("TODO: Implement this function.");
 }
 
 void
 jsn_set_bool (jsn_handle handle, _Bool value, ...)
 {
-  printf ("Hey this a boolean call!\n");
+    assert("TODO: Implement this function.");
 }
 
 void
 jsn_set_collection (jsn_handle handle, jsn_handle value, ...)
 {
-  printf ("Hey this an array or object collection call!\n");
+    assert("TODO: Implement this function.");
 }
 
 /* TESTING:
@@ -502,11 +538,11 @@ int
 main (void)
 {
   /* This is our sample array node. */
-  jsn_handle handle_array = jsn_parse ("[1,[1,2]]");
+  jsn_handle handle_array = jsn_form_string ("[1,[1,2]]");
   /* jsn_node_print (node, 0); */
 
   /* This is our sample object node. */
-  jsn_handle handle = jsn_parse ("{ \
+  jsn_handle handle = jsn_form_string ("{ \
 \"mykey\" : 123, \
 \"my other key\" : \"this is a UTF8 string! cónstàñt 家長專區.\", \
 \"my other key\" : [1,2,3,4,5,6], \
@@ -519,7 +555,6 @@ main (void)
   jsn_set (handle, 10.1, "my-key");
   jsn_set (handle, JSN_TRUE, "my-key");
   jsn_set (handle, JSN_FALSE, "my-key");
-  jsn_set (handle, handle_array, "my-key");
   jsn_set (handle, handle_array, "my-key");
 
   /* success */
