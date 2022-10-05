@@ -1,17 +1,25 @@
 #include "json.h"
+#include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
+#include <stdarg.h>
 
-/** \todo Add UTF-8 support. */
-
-/* TOKENIZER:
+/* UTILITIES
  * --------------------------------------------------------------------------*/
-/* The tokenizer needs to return tokens of different types on demand. */
+
+void
+jsn_assert(const char *message)
+{
+    printf("ASSERTION: %s\n", message);
+    exit(0);
+}
+
+/* TOKENIZER
+ * --------------------------------------------------------------------------*/
 
 enum jsn_token_kind
 {
@@ -56,6 +64,8 @@ jsn_tokenizer_init (const char *src)
   return tokenizer;
 };
 
+/* TODO: Make this a utility function, as the only thing it does dynamically
+ * expands the memory of a string. */
 void
 jsn_token_lexeme_append (struct jsn_token *token, char c)
 {
@@ -108,7 +118,7 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
   token.type = JSN_TOC_NULL;
   token.lexeme = NULL;
 
-  /** \todo Implementing regex patterns instead. */
+  /** TODO: Implementing regex patterns instead. */
 
   /* Get the number token. */
   if (isdigit (tokenizer->src[tokenizer->cursor]))
@@ -116,7 +126,7 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
       /** \todo Handle different number types.  */
 
       token.type = JSN_TOC_NUMBER;
-      while (isdigit (tokenizer->src[tokenizer->cursor]))
+      while (isdigit (tokenizer->src[tokenizer->cursor]) || tokenizer->src[tokenizer->cursor] == '.')
         {
           /* Perform operation. */
           jsn_token_lexeme_append (&token, tokenizer->src[tokenizer->cursor]);
@@ -126,7 +136,7 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
       return token;
     }
 
-  /** \todo Optimize the tokenizing process, below. */
+  /** TODO: Optimize the tokenizing process, below. */
 
   /* Handle strings. */
   if (tokenizer->src[tokenizer->cursor] == '"')
@@ -223,19 +233,25 @@ jsn_tokenizer_get_next_token (struct jsn_tokenizer *tokenizer)
 
 enum jsn_node_type
 {
-  /** \todo Handle exponents (1e-005). */
-  /** \todo Handle true. */
-  /** \todo Handle false. */
-  JSN_NODE_NUMBER,
+  JSN_NODE_INT,
+  JSN_NODE_DOUBLE,
+  JSN_NODE_BOOL,
   JSN_NODE_STRING,
   JSN_NODE_ARRAY,
   JSN_NODE_OBJECT,
 };
 
+union jsn_node_value {
+    int value_int;
+    double value_double;
+    _Bool value_bool;
+    char *value_string;
+};
+
 struct jsn_node
 {
   enum jsn_node_type type;
-  char *value;
+  union jsn_node_value value;
   char *key;
   unsigned int children_count;
   struct jsn_node **children;
@@ -249,7 +265,6 @@ jsn_node_create (enum jsn_node_type type)
 
   /* Set some sane defaults. */
   node->type = type;
-  node->value = NULL;
   node->children_count = 0;
   node->children = NULL;
   node->key = NULL;
@@ -264,11 +279,28 @@ jsn_node_append_child (struct jsn_node *parent, struct jsn_node *child)
   parent->children_count++;
 
   /* Reallocate memory. */
-  parent->children = realloc (parent->children, sizeof (struct jsn_node *)
-                                                    * parent->children_count);
+  unsigned int size = (sizeof (struct jsn_node *)) * (parent->children_count);
+  parent->children = realloc (parent->children, size);
 
   /* Set the new node. */
   parent->children[parent->children_count - 1] = child;
+}
+
+struct jsn_node *
+jsn_node_get_child (jsn_handle handle, const char *key)
+{
+    /* TODO: What if this node has no children? */
+    /* TODO: Maybe we need to dynamically create this node? */
+
+    unsigned int i;
+    for(i = 0; i <= handle->children_count; i++) {
+        struct jsn_node *child_node = handle->children[i];
+        if (strcmp(child_node->key, key) == 0) {
+            return child_node;
+        }
+    }
+
+    return NULL;
 }
 
 void
@@ -289,21 +321,30 @@ jsn_node_print (struct jsn_node *node, unsigned int indent)
   printf ("%sKey: %s\n", indent_str, node->key);
   switch (node->type)
     {
-    case JSN_NODE_ARRAY:
-      printf ("%sType: %s\n", indent_str, "ARRAY");
-      break;
     case JSN_NODE_STRING:
       printf ("%sType: %s\n", indent_str, "STRING");
+      printf ("%sValue: %s\n", indent_str, node->value.value_string);
+      break;
+    case JSN_NODE_INT:
+      printf ("%sType: %s\n", indent_str, "INTEGER");
+      printf ("%sValue: %i\n", indent_str, node->value.value_int);
+      break;
+    case JSN_NODE_DOUBLE:
+      printf ("%sType: %s\n", indent_str, "DOUBLE");
+      printf ("%sValue: %f\n", indent_str, node->value.value_double);
+      break;
+    case JSN_NODE_BOOL:
+      printf ("%sType: %s\n", indent_str, "BOOL");
+      printf ("%sValue: %i\n", indent_str, node->value.value_bool);
+      break;
+    case JSN_NODE_ARRAY:
+      printf ("%sType: %s\n", indent_str, "ARRAY");
       break;
     case JSN_NODE_OBJECT:
       printf ("%sType: %s\n", indent_str, "OBJECT");
       break;
-    case JSN_NODE_NUMBER:
-      printf ("%sType: %s\n", indent_str, "NUMBER");
-      break;
     }
   printf ("%sChildren_Count: %u\n", indent_str, node->children_count);
-  printf ("%sValue: %s\n", indent_str, node->value);
 
   /* Print children too. */
   {
@@ -320,19 +361,6 @@ jsn_node_print (struct jsn_node *node, unsigned int indent)
 /* PARSER:
  * --------------------------------------------------------------------------*/
 
-/* Parser needs to make use of the tokenizer by asking for tokens to
-   extract. The Parser needs to return a tree structure that holds all of the
-   extracted tokens.
-
-   The Parser makes use of the concept of a look ahead. The recursive decent
-   parser is predictive a predictive parser. I means it can predict specific
-   production based on looking ahead to the current token.
-
-   We should start off by priming the parser with the look ahead token. Based
-   on the first token we will be able to route the parsing process accordingly.
-   Such parser corresponds to the LL1 automatic parser.
-*/
-
 struct jsn_node *jsn_parse_value (struct jsn_tokenizer *tokenizer,
                                   struct jsn_token token);
 
@@ -340,15 +368,27 @@ struct jsn_node *
 jsn_parse_string (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
   struct jsn_node *node = jsn_node_create (JSN_NODE_STRING);
-  node->value = token.lexeme;
+  /* node->value = token.lexeme; */
+  node->value.value_string = token.lexeme;
   return node;
 }
 
 struct jsn_node *
 jsn_parse_number (struct jsn_tokenizer *tokenizer, struct jsn_token token)
 {
-  struct jsn_node *node = jsn_node_create (JSN_NODE_NUMBER);
-  node->value = token.lexeme;
+  struct jsn_node *node;
+
+  /* We check if the token lexeme contains a period, then we know that it's a double */
+  if (strchr(token.lexeme, '.')) {
+      /* Double */
+      node = jsn_node_create (JSN_NODE_DOUBLE);
+      node->value.value_double = strtod(token.lexeme, NULL);
+  } else {
+      /* Integer */
+      node = jsn_node_create (JSN_NODE_INT);
+      node->value.value_int = atoi(token.lexeme);
+  }
+
   return node;
 }
 
@@ -384,7 +424,6 @@ jsn_parse_object (struct jsn_tokenizer *tokenizer, struct jsn_token token)
   /* While we haven't reached the end of the object. */
   while (token.type != JSN_TOC_OBJECT_CLOSE)
     {
-
       /* Get the key. */
       struct jsn_token token_key = jsn_tokenizer_get_next_token (tokenizer);
       if (token_key.type != JSN_TOC_STRING)
@@ -456,8 +495,11 @@ jsn_parse_value (struct jsn_tokenizer *tokenizer, struct jsn_token token)
     }
 }
 
-struct jsn_node *
-jsn_parse (const char *src)
+/* API:
+ * --------------------------------------------------------------------------*/
+
+jsn_handle
+jsn_form_string (const char *src)
 {
   /* Initialize our tokenizer, for this specific source string. */
   struct jsn_tokenizer tokenizer = jsn_tokenizer_init (src);
@@ -469,66 +511,38 @@ jsn_parse (const char *src)
   return jsn_parse_value (&tokenizer, token);
 }
 
-/* API Playground:
- * --------------------------------------------------------------------------*/
-
-void jsn_print(jsn_handle handle) {
-    assert("TODO: Implement this function.");
-}
-
-jsn_handle
-jsn_form_file (const char *path)
+void
+jsn_print (jsn_handle handle)
 {
-    assert("TODO: Implement this function.");
-}
-
-jsn_handle
-jsn_form_string (const char *src)
-{
-    /* Initialize our tokenizer, for this specific source string. */
-    struct jsn_tokenizer tokenizer = jsn_tokenizer_init (src);
-
-    /* Prime the tokenizer. */
-    struct jsn_token token = jsn_tokenizer_get_next_token (&tokenizer);
-
-    /* Start parsing, recursively. */
-    return jsn_parse_value (&tokenizer, token);
+  jsn_node_print (handle, 0);
 }
 
 void
-jsn_to_file (jsn_handle handle)
+jsn_set_value_int(jsn_handle handle, int value, ...)
 {
-    assert("TODO: Implement this function.");
-}
+    va_list args;
+    va_start(args, value);
 
-char *
-jsn_to_string (jsn_handle handle)
-{
-    assert("TODO: Implement this function.");
-}
+    /* Here we keep the root node, as we move down the keys. */
+    struct jsn_node *node = NULL;
 
-void
-jsn_set_int (jsn_handle handle, int value, ...)
-{
-    assert("TODO: Implement this function.");
-}
+    const char *key;
+    while ((key = va_arg(args, char *)) != NULL) {
+        /* here we need to do something. */
+        printf("This is the key: %s\n", key);
+        node = jsn_node_get_child(handle, key);
+    }
+    va_end(args);
 
-void
-jsn_set_double (jsn_handle handle, double value, ...)
-{
-    assert("TODO: Implement this function.");
-}
+    /* We found the node and now can actually go ahead and set it's value. */
+    if (node != NULL) {
 
-void
-jsn_set_bool (jsn_handle handle, _Bool value, ...)
-{
-    assert("TODO: Implement this function.");
-}
-
-void
-jsn_set_collection (jsn_handle handle, jsn_handle value, ...)
-{
-    assert("TODO: Implement this function.");
+        /* Before we set the value we should make sure that it's not an object or array? */
+        node->value.value_int = value;
+        printf("%u\n", node->value.value_int);
+    } else {
+        jsn_assert("A node with the given key, could not be found.");
+    }
 }
 
 /* TESTING:
@@ -537,25 +551,33 @@ jsn_set_collection (jsn_handle handle, jsn_handle value, ...)
 int
 main (void)
 {
-  /* This is our sample array node. */
-  jsn_handle handle_array = jsn_form_string ("[1,[1,2]]");
-  /* jsn_node_print (node, 0); */
+
+  jsn_handle handle_ages = jsn_form_string ("{ \
+\"jackie\" : 39, \
+\"vernon\" : 32, \
+\"lucy\" : 80 \
+}");
+  jsn_print (handle_ages);
+  jsn_set_value_int(handle_ages, 39, "vernon");
+  jsn_print (handle_ages);
 
   /* This is our sample object node. */
-  jsn_handle handle = jsn_form_string ("{ \
-\"mykey\" : 123, \
-\"my other key\" : \"this is a UTF8 string! cónstàñt 家長專區.\", \
-\"my other key\" : [1,2,3,4,5,6], \
-\"my other key\" : {\"this is an inner obj\" : 3000} \
-}");
-
-  jsn_node_print (handle, 0);
-
-  jsn_set (handle, 10, "my-key");
-  jsn_set (handle, 10.1, "my-key");
-  jsn_set (handle, JSN_TRUE, "my-key");
-  jsn_set (handle, JSN_FALSE, "my-key");
-  jsn_set (handle, handle_array, "my-key");
+  /* jsn_handle handle = jsn_form_string ("{ \ */
+/* \"mykey\" : 123, \ */
+/* \"my other key\" : \"this is a UTF8 string! cónstàñt 家長專區.\", \ */
+/* \"my othere key\" : [1,2,3,4,5,6], \ */
+/* \"my otheree key\" : {\"this is an inner obj\" : 3000} \ */
+/* }"); */
+  /* jsn_print (handle); */
+  /* This is our sample array node. */
+  /* jsn_handle handle_array = jsn_form_string ("[1,[1,2]]"); */
+  /* jsn_set_value (handle, handle_array, "my-key"); */
+  /* Node = key -> value */
+  /* jsn_node_print (handle, 0); */
+  /* jsn_set_value (handle, 10, "my-key"); */
+  /* jsn_set_value (handle, 10.1, "my-key"); */
+  /* jsn_set_value (handle, JSN_TRUE, "my-key"); */
+  /* jsn_set_value (handle, JSN_FALSE, "my-key"); */
 
   /* success */
   return 0;

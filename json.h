@@ -1,43 +1,47 @@
 #ifndef JSON_H
 #define JSON_H
 
-#include <stdbool.h>
-
 /**
  * Handle definition.
  */
 struct jsn_node;
 typedef struct jsn_node *jsn_handle;
 
-/* Generating a tree of nodes from. */
-
-jsn_handle jsn_from_file (const char *path);
+/* GENERATING NODE TREE
+ * ------------------------------------------------------------------------- */
 
 jsn_handle jsn_from_string (const char *src);
 
-/* Exporting a tree of nodes. */
+/* DEBUGGING
+ * ------------------------------------------------------------------------- */
 
-void jsn_to_file (jsn_handle handle);
+void jsn_print (jsn_handle handle);
 
-char *jsn_to_string (jsn_handle handle);
-
-/* Debugging. */
-
-void jsn_print(jsn_handle handle);
+/* SETTERS
+ * ------------------------------------------------------------------------- */
 
 /* Setting the values of nodes. */
 
-#define JSN_TRUE (_Bool)1
-#define JSN_FALSE (_Bool)0
+/* #define JSN_TRUE (_Bool)1 */
+/* #define JSN_FALSE (_Bool)0 */
 
-// clang-format off
-#define jsn_set(handle, value, ...)                                            \
-_Generic((value),                                                              \
-           default : jsn_set_int,                                              \
-           double : jsn_set_double,                                            \
-           _Bool : jsn_set_bool,                                               \
-           jsn_handle : jsn_set_collection                                     \
-           ) (handle, value __VA_OPT__ (, ) __VA_ARGS__)
+// We can define this to be used to set a number.
+// clang-format off.
+/* #define jsn_set_value(handle, value, ...)                                     \ */
+/*   _Generic((value), default                                                   \ */
+/*            : jsn_set_int, double                                              \ */
+/*            : jsn_set_double, _Bool                                            \ */
+/*            : jsn_set_bool, jsn_handle                                         \ */
+/*            : jsn_set_collection) (handle, value __VA_OPT__ (, ) __VA_ARGS__) */
 
-// clang-format on
+void jsn_set_value_int(jsn_handle handle, int value, ...);
+
+/* GETTERS
+ * ------------------------------------------------------------------------- */
+
+//int jsn_get_value_int(jsn_handle handle, ...);
+
+// How about get?
+
+// clang-format on.
 #endif
