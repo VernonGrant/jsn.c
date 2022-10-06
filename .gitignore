@@ -51,3 +51,7 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Codelite - Debugger
+.codelite/
+json_c.workspace
