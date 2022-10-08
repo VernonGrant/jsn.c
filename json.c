@@ -615,6 +615,32 @@ jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
     return selected;
 }
 
+
+jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
+    // Make sure were dealing with an array item.
+    if (handle->type != JSN_NODE_ARRAY) {
+        // TODO: Define better error messages.
+        jsn_assert( "The handle passed to jsn_get_array_item isn't an array.");
+        return NULL;
+    }
+
+    // Make sure the provided index is not larger then the array itself.
+    if (handle->children_count > (index + 1)) {
+        // TODO: Define better error messages.
+        jsn_assert( "The provided index is outside the arrays scope.");
+        return NULL;
+    }
+
+    // Check to make sure the array does in fact have children.
+    if (handle->children_count == 0) {
+        // TODO: Define better error messages.
+        jsn_assert( "The array does not have any children.");
+        return NULL;
+    }
+
+    return handle->children[index];
+}
+
 /**
  * Will append a node to an node of object type. If the object already has a
  * node with the same key, it will get replaced. Keep in mind the replaced
@@ -624,7 +650,7 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Make sure were dealing with an object handle type here.
     if (handle->type != JSN_NODE_OBJECT) {
         jsn_assert(
-            "The handle passed to jsn_node_object_append isn't an object.");
+            "The handle passed to jsn_object_set isn't an object.");
     }
 
     // Already has a key so we need to free it.
@@ -755,30 +781,30 @@ int main(void) {
     jsn_array_push(people, jsn_create_boolean(false));
     jsn_array_push(people, jsn_create_string("Hello String!"));
     jsn_object_set(root, "MyArray", people);
-    jsn_print(root);
+    jsn_print(people);
 
     // Getting and setting the values of nodes and or changing their types.
-    jsn_handle team_members = jsn_create_object();
-    // When you try to append an existing node, it will get replaced.
-    jsn_object_set(team_members, "Member 1", jsn_create_integer(300));
-    jsn_object_set(team_members, "Member 2", jsn_create_integer(300));
-    jsn_object_set(team_members, "Member 3", jsn_create_integer(200));
-    jsn_print(team_members);
+    // jsn_handle team_members = jsn_create_object();
+    // // When you try to append an existing node, it will get replaced.
+    // jsn_object_set(team_members, "Member 1", jsn_create_integer(300));
+    // jsn_object_set(team_members, "Member 2", jsn_create_integer(300));
+    // jsn_object_set(team_members, "Member 3", jsn_create_integer(200));
+    // jsn_print(team_members);
 
-    jsn_handle member = jsn_get(team_members, 1, "Member 1");
-    jsn_print(member);
-    jsn_set_as_integer(member, 5000);
-    jsn_print(member);
-    jsn_set_as_double(member, 5000);
-    jsn_print(member);
-    jsn_set_as_boolean(member, false);
-    jsn_print(member);
-    jsn_set_as_string(member, "My String Value");
-    jsn_print(member);
-    jsn_set_as_object(member);
-    jsn_print(member);
-    jsn_set_as_array(member);
-    jsn_print(member);
+    // jsn_handle member = jsn_get(team_members, 1, "Member 1");
+    // jsn_print(member);
+    // jsn_set_as_integer(member, 5000);
+    // jsn_print(member);
+    // jsn_set_as_double(member, 5000);
+    // jsn_print(member);
+    // jsn_set_as_boolean(member, false);
+    // jsn_print(member);
+    // jsn_set_as_string(member, "My String Value");
+    // jsn_print(member);
+    // jsn_set_as_object(member);
+    // jsn_print(member);
+    // jsn_set_as_array(member);
+    // jsn_print(member);
 
     // Setting node values and changing their types.
     // jsn_handle handle_ages = jsn_form_string("{ \

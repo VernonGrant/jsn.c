@@ -39,7 +39,7 @@ void jsn_array_push(jsn_handle handle, jsn_handle node);
 
 // Get a node.
 jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...);
-jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index, unsigned int arg_count, ...); // Not Implemented
+jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index);
 
 // Set a nodes value, change the nodes type if needed.
 void jsn_set_as_object(jsn_handle handle);
