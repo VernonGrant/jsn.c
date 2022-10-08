@@ -1,0 +1,6 @@
+{
+    "mykey" : 123,
+    "my other key" : "this is a UTF8 string! cónstàñt 家長專區.",
+    "my othere key" : [1,2,3,4,5,6],
+    "my otheree key" : {"this is an inner obj" : 3000}
+}

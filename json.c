@@ -548,7 +548,7 @@ void jsn_node_print_intented(struct jsn_node *node, unsigned int indent) {
 
 void jsn_print(jsn_handle handle) { jsn_node_print_intented(handle, 0); }
 
-jsn_handle jsn_form_string(const char *src) {
+jsn_handle jsn_from_string(const char *src) {
     // Initialize our tokenizer, for this specific source string.
     struct jsn_tokenizer tokenizer = jsn_tokenizer_init(src);
 
@@ -558,6 +558,12 @@ jsn_handle jsn_form_string(const char *src) {
     // Start parsing, recursively.
     return jsn_parse_value(&tokenizer, token);
 }
+
+jsn_handle jsn_form_file(const char *path) {
+    // TODO: Implement this.
+    return NULL;
+}
+
 
 jsn_handle jsn_create_object() {
     struct jsn_node *node = jsn_create_node(JSN_NODE_OBJECT);
@@ -807,15 +813,16 @@ int main(void) {
     // jsn_print(member);
 
     // Setting node values and changing their types.
-    // jsn_handle handle_ages = jsn_form_string("{ \
-    //     \"jackie\" : 39, \
-    //     \"vernon\" : 32, \
-    //     \"jhon\" : 32.5, \
-    //     \"lucy\" : 80 \
-    // }");
+    jsn_handle handle_ages = jsn_from_string("{ \
+        \"jackie\" : 39, \
+        \"vernon\" : 32, \
+        \"jhon\" : 32.5, \
+        \"lucy\" : 80 \
+    }");
+    // jsn_print(handle_ages);
 
     // This is our sample object node.
-    // jsn_handle handle = jsn_form_string ("{ \
+    // jsn_handle handle = jsn_from_string ("{ \
     //     \"mykey\" : 123, \
     //     \"my other key\" : \"this is a UTF8 string! cónstàñt 家長專區.\", \
     //     \"my othere key\" : [1,2,3,4,5,6], \
