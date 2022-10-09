@@ -18,7 +18,10 @@ void jsn_print(jsn_handle handle);
  * ------------------------------------------------------------------------- */
 
 jsn_handle jsn_from_string(const char *src);
-jsn_handle jsn_from_file(const char *path); // Not Implemented!
+jsn_handle jsn_from_file(const char *file_path);
+
+char *jsn_to_string(jsn_handle handle); // Not Implemented
+void jsn_to_file(jsn_handle handle, const char *file_path); // Not Implemented
 
 /* FINAL API
  * ------------------------------------------------------------------------- */
@@ -49,7 +52,7 @@ void jsn_set_as_double(jsn_handle handle, double value);
 void jsn_set_as_boolean(jsn_handle handle, bool value);
 void jsn_set_as_string(jsn_handle handle, const char *value);
 
-// Delete a node.
-void jsn_delete(jsn_handle handle);
+// Free a node.
+void jsn_free(jsn_handle handle);
 
 #endif

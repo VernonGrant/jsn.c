@@ -493,11 +493,10 @@ struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
 /* Debug:
  * --------------------------------------------------------------------------*/
 
-void jsn_node_print_intented(struct jsn_node *node, unsigned int indent) {
+void jsn_node_print_tree(struct jsn_node *node, unsigned int indent) {
     // Generate padding string, if needed.
     char indent_str[indent + 1];
-    unsigned int i;
-    for (i = 0; i < indent; i++) {
+    for (unsigned int i = 0; i < indent; i++) {
         indent_str[i] = '.';
     }
     indent_str[indent] = '\0';
@@ -533,12 +532,9 @@ void jsn_node_print_intented(struct jsn_node *node, unsigned int indent) {
     printf("%sChildren_Count: %u\n", indent_str, node->children_count);
 
     // Print children too.
-    {
-        unsigned int i;
-        for (i = 0; i < node->children_count; i++) {
-            // Print out node children (recursive call).
-            jsn_node_print_intented(node->children[i], indent + 4);
-        }
+    for (unsigned int i = 0; i < node->children_count; i++) {
+        // Print out node children (recursive call).
+        jsn_node_print_tree(node->children[i], indent + 4);
     }
     printf("%s]\n", indent_str);
 }
@@ -546,7 +542,10 @@ void jsn_node_print_intented(struct jsn_node *node, unsigned int indent) {
 /* API:
  * --------------------------------------------------------------------------*/
 
-void jsn_print(jsn_handle handle) { jsn_node_print_intented(handle, 0); }
+void jsn_print(jsn_handle handle) {
+    // TODO: Implement a proper printer, JSON type.
+    jsn_node_print_tree(handle, 0);
+}
 
 jsn_handle jsn_from_string(const char *src) {
     // Initialize our tokenizer, for this specific source string.
@@ -559,11 +558,49 @@ jsn_handle jsn_from_string(const char *src) {
     return jsn_parse_value(&tokenizer, token);
 }
 
-jsn_handle jsn_form_file(const char *path) {
-    // TODO: Implement this.
-    return NULL;
-}
+jsn_handle jsn_from_file(const char *file_path) {
+    // TODO: Note there's a file size limit here for fseek and fread.
+    // TODO: Will require a more sophisticated solution.
 
+    FILE *file_ptr;
+
+    // Open the file.
+    file_ptr = fopen(file_path, "r");
+
+    // In case the file can't be read, report and return null.
+    if (file_ptr == NULL) {
+        fclose(file_ptr);
+        jsn_assert("The file could not be opened.");
+        return NULL;
+    }
+
+    // Let's get the size of the file in bytes.
+    fseek(file_ptr, 0, SEEK_END);
+    int file_size = ftell(file_ptr) + 1;
+
+    // Rewind and allocate a local string.
+    fseek(file_ptr, 0, SEEK_SET);
+    char *source_buffer = malloc(file_size * CHAR_BIT);
+    source_buffer[file_size - 1] = '\0';
+
+    // Read the file into this new string.
+    fread(source_buffer, file_size, 1, file_ptr);
+
+    // Let's now try to parse the string into the tree.
+    struct jsn_node *node = jsn_from_string(source_buffer);
+
+    if (node == NULL) {
+        jsn_assert("The file could not be parsed, it might contain issues.");
+        return NULL;
+    }
+
+    // Free memory and close the file steam.
+    free(source_buffer);
+    fclose(file_ptr);
+
+    // The node will be null anyway, so just return it.
+    return node;
+}
 
 jsn_handle jsn_create_object() {
     struct jsn_node *node = jsn_create_node(JSN_NODE_OBJECT);
@@ -621,26 +658,25 @@ jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
     return selected;
 }
 
-
 jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
     // Make sure were dealing with an array item.
     if (handle->type != JSN_NODE_ARRAY) {
         // TODO: Define better error messages.
-        jsn_assert( "The handle passed to jsn_get_array_item isn't an array.");
+        jsn_assert("The handle passed to jsn_get_array_item isn't an array.");
         return NULL;
     }
 
     // Make sure the provided index is not larger then the array itself.
     if (handle->children_count > (index + 1)) {
         // TODO: Define better error messages.
-        jsn_assert( "The provided index is outside the arrays scope.");
+        jsn_assert("The provided index is outside the arrays scope.");
         return NULL;
     }
 
     // Check to make sure the array does in fact have children.
     if (handle->children_count == 0) {
         // TODO: Define better error messages.
-        jsn_assert( "The array does not have any children.");
+        jsn_assert("The array does not have any children.");
         return NULL;
     }
 
@@ -655,8 +691,7 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
 void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Make sure were dealing with an object handle type here.
     if (handle->type != JSN_NODE_OBJECT) {
-        jsn_assert(
-            "The handle passed to jsn_object_set isn't an object.");
+        jsn_assert("The handle passed to jsn_object_set isn't an object.");
     }
 
     // Already has a key so we need to free it.
@@ -756,38 +791,38 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
     handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
 }
 
-void jsn_delete(jsn_handle handle) { jsn_free_node(handle); }
+void jsn_free(jsn_handle handle) { jsn_free_node(handle); }
 
 /* TESTING:
  * --------------------------------------------------------------------------*/
 
 int main(void) {
     // Building a JSON tree from code.
-    jsn_handle root = jsn_create_object();
+    // jsn_handle root = jsn_create_object();
 
-    jsn_object_set(root, "Jackie", jsn_create_integer(39));
-    jsn_object_set(root, "Vernon", jsn_create_integer(32));
-    jsn_object_set(root, "Lucy", jsn_create_integer(80));
+    // jsn_object_set(root, "Jackie", jsn_create_integer(39));
+    // jsn_object_set(root, "Vernon", jsn_create_integer(32));
+    // jsn_object_set(root, "Lucy", jsn_create_integer(80));
 
-    jsn_object_set(root, "JackieD", jsn_create_double(39));
-    jsn_object_set(root, "VernonD", jsn_create_double(32));
-    jsn_object_set(root, "LucyD", jsn_create_double(80));
+    // jsn_object_set(root, "JackieD", jsn_create_double(39));
+    // jsn_object_set(root, "VernonD", jsn_create_double(32));
+    // jsn_object_set(root, "LucyD", jsn_create_double(80));
 
-    jsn_object_set(root, "JackieB", jsn_create_boolean(true));
-    jsn_object_set(root, "VernonB", jsn_create_boolean(false));
-    jsn_object_set(root, "LucyB", jsn_create_boolean(false));
+    // jsn_object_set(root, "JackieB", jsn_create_boolean(true));
+    // jsn_object_set(root, "VernonB", jsn_create_boolean(false));
+    // jsn_object_set(root, "LucyB", jsn_create_boolean(false));
 
-    jsn_object_set(root, "JackieS", jsn_create_string("Hello, Jackie!"));
-    jsn_object_set(root, "VernonS", jsn_create_string("Hello, Vernon!"));
-    jsn_object_set(root, "LucyS", jsn_create_string("Hello, Lucy!"));
+    // jsn_object_set(root, "JackieS", jsn_create_string("Hello, Jackie!"));
+    // jsn_object_set(root, "VernonS", jsn_create_string("Hello, Vernon!"));
+    // jsn_object_set(root, "LucyS", jsn_create_string("Hello, Lucy!"));
 
-    jsn_handle people = jsn_create_array();
-    jsn_array_push(people, jsn_create_integer(39));
-    jsn_array_push(people, jsn_create_double(39));
-    jsn_array_push(people, jsn_create_boolean(false));
-    jsn_array_push(people, jsn_create_string("Hello String!"));
-    jsn_object_set(root, "MyArray", people);
-    jsn_print(people);
+    // jsn_handle people = jsn_create_array();
+    // jsn_array_push(people, jsn_create_integer(39));
+    // jsn_array_push(people, jsn_create_double(39));
+    // jsn_array_push(people, jsn_create_boolean(false));
+    // jsn_array_push(people, jsn_create_string("Hello String!"));
+    // jsn_object_set(root, "MyArray", people);
+    // jsn_print(people);
 
     // Getting and setting the values of nodes and or changing their types.
     // jsn_handle team_members = jsn_create_object();
@@ -812,6 +847,9 @@ int main(void) {
     // jsn_set_as_array(member);
     // jsn_print(member);
 
+    jsn_handle file_object = jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-1.json");
+    jsn_print(file_object);
+
     // Setting node values and changing their types.
     jsn_handle handle_ages = jsn_from_string("{ \
         \"jackie\" : 39, \
@@ -819,15 +857,7 @@ int main(void) {
         \"jhon\" : 32.5, \
         \"lucy\" : 80 \
     }");
-    // jsn_print(handle_ages);
-
-    // This is our sample object node.
-    // jsn_handle handle = jsn_from_string ("{ \
-    //     \"mykey\" : 123, \
-    //     \"my other key\" : \"this is a UTF8 string! cónstàñt 家長專區.\", \
-    //     \"my othere key\" : [1,2,3,4,5,6], \
-    //     \"my otheree key\" : {\"this is an inner obj\" : 3000} \
-    // }");
+    jsn_print(handle_ages);
 
     // success
     return 0;
