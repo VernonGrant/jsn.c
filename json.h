@@ -14,6 +14,8 @@ typedef struct jsn_node *jsn_handle;
 
 void jsn_print(jsn_handle handle);
 
+// TODO: Define debugging constants here, so we can hard exit on failures.
+
 /* GENERATING NODE TREE
  * ------------------------------------------------------------------------- */
 
@@ -23,7 +25,7 @@ jsn_handle jsn_from_file(const char *file_path);
 char *jsn_to_string(jsn_handle handle); // Not Implemented
 void jsn_to_file(jsn_handle handle, const char *file_path); // Not Implemented
 
-/* FINAL API
+/* FINAL INTERFACE
  * ------------------------------------------------------------------------- */
 
 // Create a new node.
