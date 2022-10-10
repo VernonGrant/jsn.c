@@ -37,6 +37,7 @@ enum jsn_token_kind {
 struct jsn_token {
     unsigned int type;
     unsigned long lexeme_len;
+    unsigned long lexeme_len_max;
     char *lexeme;
 };
 
@@ -63,41 +64,31 @@ struct jsn_tokenizer jsn_tokenizer_init(const char *src) {
 /* TODO: Make this a utility function, as the only thing it does dynamically
  * expands the memory of a string. */
 void jsn_token_lexeme_append(struct jsn_token *token, char c) {
-    // TODO: Find out why there's an segment malloc issue here.
-    // Will chunk 50 * CHAR_BIT.
-    static const unsigned int chunk_size = 10024;
-
     // Handle dynamic memory allocation, in chunks.
     if (token->lexeme == NULL) {
-        char *lexeme_ext = malloc(chunk_size * CHAR_BIT);
-        token->lexeme_len = chunk_size;
-        token->lexeme = lexeme_ext;
-    } else if (token->lexeme_len < (strlen(token->lexeme) + 1)) {
+        token->lexeme = malloc(LEXEME_CHUNK_SIZE* CHAR_BIT);
+        token->lexeme_len_max = LEXEME_CHUNK_SIZE;
+        token->lexeme_len = 1;
+    } else if (token->lexeme_len == token->lexeme_len_max) {
+
         // Keep pointer to old lexeme.
         char *old_lexeme = token->lexeme;
 
-        // Allocate additional memory chunk.
-        unsigned long int lexeme_new_len = (token->lexeme_len + chunk_size);
-        // printf("This is the size: %lu\n", lexeme_new_len);
-        char *lexeme_ext = malloc(lexeme_new_len * CHAR_BIT);
-        token->lexeme = memcpy(lexeme_ext, token->lexeme, token->lexeme_len * CHAR_BIT);
-
-        // Set the new length.
-        token->lexeme_len = lexeme_new_len;
+        // Allocate some additional memory.
+        token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
+        char *lexeme_storage = malloc(token->lexeme_len_max * CHAR_BIT);
+        token->lexeme = memcpy(lexeme_storage, token->lexeme, token->lexeme_len * CHAR_BIT);
 
         // Free old memory.
         free(old_lexeme);
-
-        // TODO: Remove print statement.
-        // printf("Allocated more memory! \n");
     }
 
-    // Get's the lexemes length.
-    unsigned long int lexeme_len = strlen(token->lexeme) + 1;
-
     // Append the additional char.
-    token->lexeme[lexeme_len] = '\0';
-    token->lexeme[lexeme_len - 1] = c;
+    token->lexeme[token->lexeme_len] = '\0';
+    token->lexeme[token->lexeme_len - 1] = c;
+
+    // Increment the length.
+    token->lexeme_len++;
 }
 
 struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
