@@ -9,11 +9,18 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* CONSTANTS
+ * --------------------------------------------------------------------------*/
+
+#ifndef LEXEME_CHUNK_SIZE
+#define LEXEME_CHUNK_SIZE 16
+#endif
+
 /* UTILITIES
  * --------------------------------------------------------------------------*/
 
-void jsn_assert(const char *message) {
-    printf("ASSERTION: %s\n", message);
+void jsn_notice(const char *message) {
+    printf("NOTICE: %s\n", message);
     // exit (0);
 }
 
@@ -40,9 +47,9 @@ enum jsn_token_kind {
 };
 
 struct jsn_token {
-    unsigned int type;
-    unsigned long lexeme_len;
-    unsigned long lexeme_len_max;
+    enum jsn_token_kind type;
+    unsigned int lexeme_len;
+    unsigned int lexeme_len_max;
     char *lexeme;
 };
 
@@ -82,8 +89,8 @@ void jsn_token_lexeme_append(struct jsn_token *token, char c) {
         // Allocate some additional memory.
         token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
         char *lexeme_storage = malloc(token->lexeme_len_max * CHAR_BIT);
-        token->lexeme =
-            memcpy(lexeme_storage, token->lexeme, token->lexeme_len * CHAR_BIT);
+        token->lexeme = memcpy(lexeme_storage, token->lexeme, token->lexeme_len * CHAR_BIT);
+        //printf("The malloc size is %lu\n", token->lexeme_len_max + LEXEME_CHUNK_SIZE);
 
         // Free old memory.
         free(old_lexeme);
@@ -107,12 +114,15 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     // TODO: There must be a more efficient way to handle this.
     // TODO: Implementing regex patterns instead.
 
+    // TODO: Handle different number types.
+    // TODO: We can really increase performance here.
     // Get the number token.
-    if (isdigit(tokenizer->src[tokenizer->cursor])) {
-        // TODO: Handle different number types.
-
+    if (isdigit(tokenizer->src[tokenizer->cursor]) ||
+        tokenizer->src[tokenizer->cursor] == '-') {
         token.type = JSN_TOC_NUMBER;
+
         while (isdigit(tokenizer->src[tokenizer->cursor]) ||
+                tokenizer->src[tokenizer->cursor] == '-' ||
                tokenizer->src[tokenizer->cursor] == '.') {
             // Perform operation.
             jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
@@ -222,6 +232,8 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
         return token;
     }
+
+    // TODO: Huge performance gain available here.
 
     // Handle array opening.
     if (tokenizer->src[tokenizer->cursor] == '[') {
@@ -684,7 +696,7 @@ jsn_handle jsn_from_file(const char *file_path) {
     // In case the file can't be read, report and return null.
     if (file_ptr == NULL) {
         fclose(file_ptr);
-        jsn_assert("The file could not be opened.");
+        jsn_notice("The file could not be opened.");
         return NULL;
     }
 
@@ -704,7 +716,7 @@ jsn_handle jsn_from_file(const char *file_path) {
     struct jsn_node *node = jsn_from_string(source_buffer);
 
     if (node == NULL) {
-        jsn_assert("The file could not be parsed, it might contain issues.");
+        jsn_notice("The file could not be parsed, it might contain issues.");
         return NULL;
     }
 
@@ -776,21 +788,21 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
     // Make sure were dealing with an array item.
     if (handle->type != JSN_NODE_ARRAY) {
         // TODO: Define better error messages.
-        jsn_assert("The handle passed to jsn_get_array_item isn't an array.");
+        jsn_notice("The handle passed to jsn_get_array_item isn't an array.");
         return NULL;
     }
 
     // Make sure the provided index is not larger then the array itself.
     if (handle->children_count > (index + 1)) {
         // TODO: Define better error messages.
-        jsn_assert("The provided index is outside the arrays scope.");
+        jsn_notice("The provided index is outside the arrays scope.");
         return NULL;
     }
 
     // Check to make sure the array does in fact have children.
     if (handle->children_count == 0) {
         // TODO: Define better error messages.
-        jsn_assert("The array does not have any children.");
+        jsn_notice("The array does not have any children.");
         return NULL;
     }
 
@@ -805,7 +817,7 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
 void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Make sure were dealing with an object handle type here.
     if (handle->type != JSN_NODE_OBJECT) {
-        jsn_assert("The handle passed to jsn_object_set isn't an object.");
+        jsn_notice("The handle passed to jsn_object_set isn't an object.");
     }
 
     // Already has a key so we need to free it.
@@ -839,7 +851,7 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
 void jsn_array_push(jsn_handle handle, jsn_handle node) {
     // Make sure were dealing with an array handle type here.
     if (handle->type != JSN_NODE_ARRAY) {
-        jsn_assert("The handle passed to object append isn't an array.");
+        jsn_notice("The handle passed to object append isn't an array.");
     }
 
     // Array children nodes, must not have keys. (Not Objects).
@@ -962,15 +974,18 @@ int main(void) {
     // jsn_print(member);
 
     jsn_handle file_object = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/movies.json");
+        "/home/vernon/Devenv/projects/json_c/data/citylots.json");
+   //jsn_free(file_object);
 
-    jsn_handle file_object_alt = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/latestblock.json");
+    jsn_handle file_object_other = jsn_from_file(
+        "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
 
-    jsn_handle file_object_alt_alt = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/search.json");
+    // jsn_handle file_object_alt = jsn_from_file(
+    //     "/home/vernon/Devenv/projects/json_c/data/latestblock.json");
 
-    jsn_print(file_object_alt_alt);
+    // jsn_handle file_object_alt_alt = jsn_from_file(
+    //     "/home/vernon/Devenv/projects/json_c/data/search.json");
+
 
     // jsn_handle file_object = jsn_from_file(
     // "/home/vernon/Devenv/projects/json_c/data/testing-1.json");

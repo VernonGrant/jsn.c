@@ -8,7 +8,7 @@ build: $(objects)
 	$(GCC) -o ./bin/json $(objects)
 	./bin/json
 
-json.o: json.c
+json.o: json.c json.h
 	$(GCC) -c $<
 
 json.e: json.c

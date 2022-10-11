@@ -7,9 +7,8 @@
  * ------------------------------------------------------------------------- */
 
 #ifndef LEXEME_CHUNK_SIZE
-#define LEXEME_CHUNK_SIZE 64
+#define LEXEME_CHUNK_SIZE 8
 #endif
-
 
 /* HANDLE DEFINITION.
  * ------------------------------------------------------------------------- */
