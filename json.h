@@ -3,13 +3,6 @@
 
 #include <stdbool.h>
 
-/* SETTINGS.
- * ------------------------------------------------------------------------- */
-
-#ifndef LEXEME_CHUNK_SIZE
-#define LEXEME_CHUNK_SIZE 8
-#endif
-
 /* HANDLE DEFINITION.
  * ------------------------------------------------------------------------- */
 
