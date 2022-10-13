@@ -90,50 +90,68 @@ struct jsn_token {
 };
 
 struct jsn_tokenizer {
+    // TODO: The source is already here, why not just point to areas inside the source itself.
+    // TODO: No this is not possible, because there's no null terminator available in source strings.
     char *src;
-    unsigned int cursor;
+    unsigned int src_cursor;
+
+    // TODO: How and where would we free this.
+    // To speed up parsing we basically append lexeme strings to a large pool of memory.
+    char *src_lexeme_pool;
+    unsigned int src_lexeme_pool_size;
+    unsigned int src_lexeme_pool_cursor;
 };
 
-struct jsn_tokenizer jsn_tokenizer_init(const char *src) {
-    // Determine the length of the provided source string.
-    unsigned int src_length = strlen(src) + 1;
-
-    // Set aside memory and make a copy.
-    char *src_cpy = strcpy(malloc(src_length * CHAR_BIT), src);
+/**
+ * Initialized the tokenizer, the passed in char pointer should point to
+ * malloced memory.
+ */
+struct jsn_tokenizer jsn_tokenizer_init(const char *src, unsigned int src_len) {
+    // We should perform our malloc operations here.
 
     // Construct tokenizer.
     struct jsn_tokenizer tokenizer;
-    tokenizer.src = src_cpy;
-    tokenizer.cursor = 0;
+
+    // Allocate and copy the string over to the tokenizer.
+    tokenizer.src = strcpy(malloc(src_len + 1 * CHAR_BIT), src);
+    tokenizer.src[src_len + 1] = '\0';
+    tokenizer.src_cursor = 0;
+
+    // Lexeme memory pool, we assum it to be a max of double the source size.
+    tokenizer.src_lexeme_pool_size = src_len * 2;
+    tokenizer.src_lexeme_pool_cursor = 0;
+    tokenizer.src_lexeme_pool = malloc((src_len * 2) * CHAR_BIT);
 
     return tokenizer;
 };
 
+/**
+ * Only call if you want to free the source memory.
+ */
+void jsn_tokenizer_free_src(struct jsn_tokenizer *tokenizer) {
+    free(tokenizer->src);
+    tokenizer->src = NULL;
+}
+
 /* TODO: Make this a utility function, as the only thing it does dynamically
  * expands the memory of a string. */
-void jsn_token_lexeme_append(struct jsn_token *token, char c) {
+void jsn_token_lexeme_append(struct jsn_token *token, struct jsn_tokenizer *tokenizer) {
+    char c = tokenizer->src[tokenizer->src_cursor];
+
+    // Add this char to the lexeme memory pool.
+
+    // TODO: This is where the performance falls off.
     // TODO: this is very slow, because were allocating for every single string in the file.
     // Handle dynamic memory allocation, in chunks.
     if (token->lexeme == NULL) {
         // TODO: Malloc is slow.
-        token->lexeme = malloc(10 * CHAR_BIT);
-        token->lexeme_len_max = 10;
+        token->lexeme = malloc(LEXEME_CHUNK_SIZE * CHAR_BIT);
+        token->lexeme_len_max = LEXEME_CHUNK_SIZE;
         token->lexeme_len = 1;
     } else if (token->lexeme_len == token->lexeme_len_max) {
-        // realloc, seems slower.
-        // token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
-        // token->lexeme = realloc(token->lexeme, token->lexeme_len_max * CHAR_BIT);
-
-        // Keep pointer to old lexeme.
-        char *old_lexeme = token->lexeme;
-
-        // Allocate some additional memory.
+        // realloc, should be faster.
         token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
-        char *lexeme_storage = malloc(token->lexeme_len_max * CHAR_BIT);
-        token->lexeme = memcpy(lexeme_storage, token->lexeme, token->lexeme_len * CHAR_BIT);
-
-        // Free old memory.
-        free(old_lexeme);
+        token->lexeme = realloc(token->lexeme, token->lexeme_len_max * CHAR_BIT);
     }
 
     // Append the additional char.
@@ -142,7 +160,13 @@ void jsn_token_lexeme_append(struct jsn_token *token, char c) {
 
     // Increment the length.
     token->lexeme_len++;
+
+    // Increment the tokenizer src.
+    tokenizer->src_cursor++;
 }
+
+// TODO: Implement lexeme_end function.
+// void jsn_token_lexeme_
 
 struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     // Is the cursor on a number.
@@ -151,8 +175,8 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     token.lexeme = NULL;
 
     // Just skip spaces.
-    if (isspace(tokenizer->src[tokenizer->cursor])) {
-        tokenizer->cursor++;
+    if (isspace(tokenizer->src[tokenizer->src_cursor])) {
+        tokenizer->src_cursor++;
         return jsn_tokenizer_get_next_token(tokenizer);
     }
 
@@ -163,83 +187,79 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     // TODO: Handle different number types.
     // TODO: We can really increase performance here.
     // Handle strings.
-    if (tokenizer->src[tokenizer->cursor] == '"') {
+    if (tokenizer->src[tokenizer->src_cursor] == '"') {
         token.type = JSN_TOC_STRING;
-        tokenizer->cursor++;
+        tokenizer->src_cursor++;
 
         // This will keep adding bytes until the end of string is reached.
-        while (tokenizer->src[tokenizer->cursor] != '"') {
+        while (tokenizer->src[tokenizer->src_cursor] != '"') {
 
             // Handled escaped backslashes.
-            if (tokenizer->src[tokenizer->cursor] == '\\' &&
-                tokenizer->src[tokenizer->cursor + 1] == '\\') {
-                tokenizer->cursor++;
-                jsn_token_lexeme_append(&token,
-                                        tokenizer->src[tokenizer->cursor]);
-                tokenizer->cursor++;
+            if (tokenizer->src[tokenizer->src_cursor] == '\\' &&
+                tokenizer->src[tokenizer->src_cursor + 1] == '\\') {
+                tokenizer->src_cursor++;
+                jsn_token_lexeme_append(&token, tokenizer);
+                // tokenizer->src_cursor++;
                 continue;
             }
 
             // Handled escaped quotes.
-            if (tokenizer->src[tokenizer->cursor] == '\\' &&
-                tokenizer->src[tokenizer->cursor + 1] == '"') {
-                tokenizer->cursor++;
-                jsn_token_lexeme_append(&token,
-                                        tokenizer->src[tokenizer->cursor]);
-                tokenizer->cursor++;
+            if (tokenizer->src[tokenizer->src_cursor] == '\\' &&
+                tokenizer->src[tokenizer->src_cursor + 1] == '"') {
+                tokenizer->src_cursor++;
+                jsn_token_lexeme_append(&token, tokenizer);
+                // tokenizer->src_cursor++;
                 continue;
             }
 
             // Perform operation.
-            jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
+            jsn_token_lexeme_append(&token, tokenizer);
 
             // Move the cursor up.
-            tokenizer->cursor++;
+            // tokenizer->src_cursor++;
         }
 
         // Move the past the ending quote.
-        tokenizer->cursor++;
+        tokenizer->src_cursor++;
 
         return token;
     }
 
     // Get the number token.
-    if (isdigit(tokenizer->src[tokenizer->cursor]) ||
-        tokenizer->src[tokenizer->cursor] == '-') {
+    if (isdigit(tokenizer->src[tokenizer->src_cursor]) ||
+        tokenizer->src[tokenizer->src_cursor] == '-') {
         token.type = JSN_TOC_NUMBER;
 
-        while (isdigit(tokenizer->src[tokenizer->cursor]) ||
-               tokenizer->src[tokenizer->cursor] == '-' ||
-               tokenizer->src[tokenizer->cursor] == '.') {
+        while (isdigit(tokenizer->src[tokenizer->src_cursor]) ||
+               tokenizer->src[tokenizer->src_cursor] == '-' ||
+               tokenizer->src[tokenizer->src_cursor] == '.') {
             // Perform operation.
-            jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
+            jsn_token_lexeme_append(&token, tokenizer);
             // Move the cursor up.
-            tokenizer->cursor++;
+            // tokenizer->src_cursor++;
         }
         return token;
     }
 
     // Handle boolean types
-    if (tokenizer->src[tokenizer->cursor] == 't' ||
-        tokenizer->src[tokenizer->cursor] == 'f') {
+    if (tokenizer->src[tokenizer->src_cursor] == 't' ||
+        tokenizer->src[tokenizer->src_cursor] == 'f') {
 
         // Here we can assume the this must be a boolean value.
         token.type = JSN_TOC_BOOLEAN;
 
         // If true or false.
-        if (tokenizer->src[tokenizer->cursor] == 't') {
+        if (tokenizer->src[tokenizer->src_cursor] == 't') {
             // true, 0123
             for (char i = 0; i < 4; i++) {
-                jsn_token_lexeme_append(&token,
-                        tokenizer->src[tokenizer->cursor]);
-                tokenizer->cursor++;
+                jsn_token_lexeme_append(&token, tokenizer);
+                // tokenizer->src_cursor++;
             }
         } else {
             // false, 01234
             for (char i = 0; i < 5; i++) {
-                jsn_token_lexeme_append(&token,
-                        tokenizer->src[tokenizer->cursor]);
-                tokenizer->cursor++;
+                jsn_token_lexeme_append(&token, tokenizer);
+                // tokenizer->src_cursor++;
             }
         }
 
@@ -247,22 +267,21 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     }
 
     // Handle null
-    if (tokenizer->src[tokenizer->cursor] == 'n') {
+    if (tokenizer->src[tokenizer->src_cursor] == 'n') {
         // Here we can assume the this must be a null value.
         token.type = JSN_TOC_NULL;
 
         // null, 0123
         for (char i = 0; i < 4; i++) {
-            jsn_token_lexeme_append(&token,
-                                    tokenizer->src[tokenizer->cursor]);
-            tokenizer->cursor++;
+            jsn_token_lexeme_append(&token, tokenizer);
+            // tokenizer->src_cursor++;
         }
 
         return token;
     }
 
     // Check all other general token types.
-    switch (tokenizer->src[tokenizer->cursor]) {
+    switch (tokenizer->src[tokenizer->src_cursor]) {
         case '[':
             token.type = JSN_TOC_ARRAY_OPEN;
             break;
@@ -287,8 +306,8 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     }
 
     // If one of the above cases where true.
-    jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-    tokenizer->cursor++;
+    jsn_token_lexeme_append(&token, tokenizer);
+    // tokenizer->src_cursor++;
     return token;
 }
 
@@ -664,9 +683,10 @@ void jsn_print(jsn_handle handle) {
     jsn_node_print_tree(handle, 0);
 }
 
+// TODO: What is the meaning of const?
 jsn_handle jsn_from_string(const char *src) {
     // Initialize our tokenizer, for this specific source string.
-    struct jsn_tokenizer tokenizer = jsn_tokenizer_init(src);
+    struct jsn_tokenizer tokenizer = jsn_tokenizer_init(src, strlen(src) + 1);
 
     // Prime the tokenizer.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
@@ -674,9 +694,8 @@ jsn_handle jsn_from_string(const char *src) {
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
 
-    // We must free the tokenizer string.
-    free(tokenizer.src);
-    tokenizer.src = NULL;
+    // Frees the tokenizer source.
+    jsn_tokenizer_free_src(&tokenizer);
 
     return root_node;
 }
@@ -704,26 +723,22 @@ jsn_handle jsn_from_file(const char *file_path) {
     // Rewind and allocate a local string.
     fseek(file_ptr, 0, SEEK_SET);
 
-    // Create the tokenizer from file source.
-    struct jsn_tokenizer tokenizer;
-    tokenizer.cursor = 0;
-    tokenizer.src = malloc(file_size * CHAR_BIT);
-
-    // Read the file source into the tokenizer.
-    fread(tokenizer.src, file_size, 1, file_ptr);
+    // Allocate and copy file source into a temp buffer.
+    char *file_buffer = malloc(file_size * CHAR_BIT);
+    fread(file_buffer, file_size, 1, file_ptr);
+    file_buffer[file_size - 1] = '\0';
 
     // Close the file steam.
     fclose(file_ptr);
 
-    // Append null terminator.
-    tokenizer.src[file_size - 1] = '\0';
+    // Create the tokenizer from and point the src to the above buffer..
+    struct jsn_tokenizer tokenizer = jsn_tokenizer_init(file_buffer, file_size);
 
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, jsn_tokenizer_get_next_token(&tokenizer));
 
-    // Completed, so we can not free the tokenizer string.
-    free(tokenizer.src);
-    tokenizer.src = NULL;
+    // Completed, so we can not free the tokenizer src.
+    jsn_tokenizer_free_src(&tokenizer);
 
     if (root_node == NULL) {
         jsn_notice("The file could not be parsed, it might contain issues.");
