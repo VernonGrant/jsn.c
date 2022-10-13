@@ -13,7 +13,7 @@
  * --------------------------------------------------------------------------*/
 
 #ifndef LEXEME_CHUNK_SIZE
-#define LEXEME_CHUNK_SIZE 16
+#define LEXEME_CHUNK_SIZE 8
 #endif
 
 /* UTILITIES
@@ -27,6 +27,42 @@ void jsn_notice(const char *message) {
 void jsn_failure(const char *message) {
     printf("FAILURE: %s\n", message);
     exit(1);
+}
+
+#include <time.h>
+
+static clock_t benchmark_clock;
+
+void jsn_benchmark_start() {
+    benchmark_clock = clock();
+    printf("Benchmarking:\n");
+}
+
+void jsn_benchmark_end(const char *log_prefix) {
+    double delta = (double)(clock() - benchmark_clock);
+    double elapsed_time = delta / CLOCKS_PER_SEC;
+
+    // Print out benchmark results.
+    printf("Benchmark Result:\n");
+    printf("---------------------------------------------------------------\n");
+    printf("It took %f, seconds!\n", elapsed_time);
+    printf("---------------------------------------------------------------\n");
+
+    // Write the result to a file.
+    FILE *f = fopen("/home/vernon/Devenv/projects/json_c/benchmarking.txt", "a");
+
+    if (f == NULL)
+    {
+        printf("Error opening file!\n");
+        exit(1);
+    }
+
+    // get the time.
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    fprintf(f, "%d-%02d-%02d %02d:%02d:%02d | ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    fprintf(f, "%s | %f seconds.\n", log_prefix, elapsed_time);
+    fclose(f);
 }
 
 /* TOKENIZER
@@ -76,12 +112,17 @@ struct jsn_tokenizer jsn_tokenizer_init(const char *src) {
 /* TODO: Make this a utility function, as the only thing it does dynamically
  * expands the memory of a string. */
 void jsn_token_lexeme_append(struct jsn_token *token, char c) {
+    // TODO: this is very slow, because were allocating for every single string in the file.
     // Handle dynamic memory allocation, in chunks.
     if (token->lexeme == NULL) {
-        token->lexeme = malloc(LEXEME_CHUNK_SIZE * CHAR_BIT);
-        token->lexeme_len_max = LEXEME_CHUNK_SIZE;
+        // TODO: Malloc is slow.
+        token->lexeme = malloc(10 * CHAR_BIT);
+        token->lexeme_len_max = 10;
         token->lexeme_len = 1;
     } else if (token->lexeme_len == token->lexeme_len_max) {
+        // realloc, seems slower.
+        // token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
+        // token->lexeme = realloc(token->lexeme, token->lexeme_len_max * CHAR_BIT);
 
         // Keep pointer to old lexeme.
         char *old_lexeme = token->lexeme;
@@ -90,7 +131,6 @@ void jsn_token_lexeme_append(struct jsn_token *token, char c) {
         token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
         char *lexeme_storage = malloc(token->lexeme_len_max * CHAR_BIT);
         token->lexeme = memcpy(lexeme_storage, token->lexeme, token->lexeme_len * CHAR_BIT);
-        //printf("The malloc size is %lu\n", token->lexeme_len_max + LEXEME_CHUNK_SIZE);
 
         // Free old memory.
         free(old_lexeme);
@@ -110,28 +150,18 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     token.type = JSN_TOC_UNKNOWN;
     token.lexeme = NULL;
 
+    // Just skip spaces.
+    if (isspace(tokenizer->src[tokenizer->cursor])) {
+        tokenizer->cursor++;
+        return jsn_tokenizer_get_next_token(tokenizer);
+    }
+
     // TODO: Optimize the tokenizing process, below.
     // TODO: There must be a more efficient way to handle this.
     // TODO: Implementing regex patterns instead.
 
     // TODO: Handle different number types.
     // TODO: We can really increase performance here.
-    // Get the number token.
-    if (isdigit(tokenizer->src[tokenizer->cursor]) ||
-        tokenizer->src[tokenizer->cursor] == '-') {
-        token.type = JSN_TOC_NUMBER;
-
-        while (isdigit(tokenizer->src[tokenizer->cursor]) ||
-                tokenizer->src[tokenizer->cursor] == '-' ||
-               tokenizer->src[tokenizer->cursor] == '.') {
-            // Perform operation.
-            jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-            // Move the cursor up.
-            tokenizer->cursor++;
-        }
-        return token;
-    }
-
     // Handle strings.
     if (tokenizer->src[tokenizer->cursor] == '"') {
         token.type = JSN_TOC_STRING;
@@ -173,40 +203,42 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         return token;
     }
 
-    // Handle boolean true
-    if (tokenizer->src[tokenizer->cursor] == 't') {
-        // TODO: We need to do some bound checking, maybe set a source length.
-        // If this is a boolean of true, handle token.
-        if (tokenizer->src[tokenizer->cursor + 1] == 'r' &&
-            tokenizer->src[tokenizer->cursor + 2] == 'u' &&
-            tokenizer->src[tokenizer->cursor + 3] == 'e') {
-            token.type = JSN_TOC_BOOLEAN;
+    // Get the number token.
+    if (isdigit(tokenizer->src[tokenizer->cursor]) ||
+        tokenizer->src[tokenizer->cursor] == '-') {
+        token.type = JSN_TOC_NUMBER;
 
-            // This is a boolean of true.
-            for (int i = 3; i >= 0; i--) {
-                jsn_token_lexeme_append(&token,
-                                        tokenizer->src[tokenizer->cursor]);
-                tokenizer->cursor++;
-            }
+        while (isdigit(tokenizer->src[tokenizer->cursor]) ||
+               tokenizer->src[tokenizer->cursor] == '-' ||
+               tokenizer->src[tokenizer->cursor] == '.') {
+            // Perform operation.
+            jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
+            // Move the cursor up.
+            tokenizer->cursor++;
         }
-
         return token;
     }
 
-    // Handle boolean false
-    if (tokenizer->src[tokenizer->cursor] == 'f') {
-        // TODO: We need to do some bound checking, maybe set a source length
-        // If this is a boolean of false, handle token.
-        if (tokenizer->src[tokenizer->cursor + 1] == 'a' &&
-            tokenizer->src[tokenizer->cursor + 2] == 'l' &&
-            tokenizer->src[tokenizer->cursor + 3] == 's' &&
-            tokenizer->src[tokenizer->cursor + 4] == 'e') {
-            token.type = JSN_TOC_BOOLEAN;
+    // Handle boolean types
+    if (tokenizer->src[tokenizer->cursor] == 't' ||
+        tokenizer->src[tokenizer->cursor] == 'f') {
 
-            // This is a boolean of false.
-            for (int i = 4; i >= 0; i--) {
+        // Here we can assume the this must be a boolean value.
+        token.type = JSN_TOC_BOOLEAN;
+
+        // If true or false.
+        if (tokenizer->src[tokenizer->cursor] == 't') {
+            // true, 0123
+            for (char i = 0; i < 4; i++) {
                 jsn_token_lexeme_append(&token,
-                                        tokenizer->src[tokenizer->cursor]);
+                        tokenizer->src[tokenizer->cursor]);
+                tokenizer->cursor++;
+            }
+        } else {
+            // false, 01234
+            for (char i = 0; i < 5; i++) {
+                jsn_token_lexeme_append(&token,
+                        tokenizer->src[tokenizer->cursor]);
                 tokenizer->cursor++;
             }
         }
@@ -216,86 +248,47 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
     // Handle null
     if (tokenizer->src[tokenizer->cursor] == 'n') {
-        // If this is a boolean of false, handle token.
-        if (tokenizer->src[tokenizer->cursor + 1] == 'u' &&
-            tokenizer->src[tokenizer->cursor + 2] == 'l' &&
-            tokenizer->src[tokenizer->cursor + 3] == 'l') {
-            token.type = JSN_TOC_NULL;
+        // Here we can assume the this must be a null value.
+        token.type = JSN_TOC_NULL;
 
-            // This is a boolean of true.
-            for (int i = 3; i >= 0; i--) {
-                jsn_token_lexeme_append(&token,
-                                        tokenizer->src[tokenizer->cursor]);
-                tokenizer->cursor++;
-            }
+        // null, 0123
+        for (char i = 0; i < 4; i++) {
+            jsn_token_lexeme_append(&token,
+                                    tokenizer->src[tokenizer->cursor]);
+            tokenizer->cursor++;
         }
 
         return token;
     }
 
-    // TODO: Huge performance gain available here.
-
-    // Handle array opening.
-    if (tokenizer->src[tokenizer->cursor] == '[') {
-        token.type = JSN_TOC_ARRAY_OPEN;
-        jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-        tokenizer->cursor++;
-        return token;
+    // Check all other general token types.
+    switch (tokenizer->src[tokenizer->cursor]) {
+        case '[':
+            token.type = JSN_TOC_ARRAY_OPEN;
+            break;
+        case ']':
+            token.type = JSN_TOC_ARRAY_CLOSE;
+            break;
+        case ',':
+            token.type = JSN_TOC_COMMA;
+            break;
+        case '{':
+            token.type = JSN_TOC_OBJECT_OPEN;
+            break;
+        case '}':
+            token.type = JSN_TOC_OBJECT_CLOSE;
+            break;
+        case ':':
+            token.type = JSN_TOC_COLON;
+            break;
+        default:
+            jsn_failure("Unknown token, found.");
+            return token;
     }
 
-    // Handle array closing.
-    if (tokenizer->src[tokenizer->cursor] == ']') {
-        token.type = JSN_TOC_ARRAY_CLOSE;
-        jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-        tokenizer->cursor++;
-        return token;
-    }
-
-    // Handle comma separator.
-    if (tokenizer->src[tokenizer->cursor] == ',') {
-        token.type = JSN_TOC_COMMA;
-        jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-        tokenizer->cursor++;
-        return token;
-    }
-
-    // Handle object opening.
-    if (tokenizer->src[tokenizer->cursor] == '{') {
-        token.type = JSN_TOC_OBJECT_OPEN;
-        jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-        tokenizer->cursor++;
-        return token;
-    }
-
-    // Handle object closing.
-    if (tokenizer->src[tokenizer->cursor] == '}') {
-        token.type = JSN_TOC_OBJECT_CLOSE;
-        jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-        tokenizer->cursor++;
-        return token;
-    }
-
-    // Handle colon.
-    if (tokenizer->src[tokenizer->cursor] == ':') {
-        token.type = JSN_TOC_COLON;
-        jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
-        tokenizer->cursor++;
-        return token;
-    }
-
-    // Handle white spaces.
-    if (isspace(tokenizer->src[tokenizer->cursor])) {
-        tokenizer->cursor++;
-        return jsn_tokenizer_get_next_token(tokenizer);
-    }
-
-    // Debugging
-    jsn_failure("Unknown token, found.");
-    // printf("Unknown token, check this: \n");
-    // for (int i = -10; i <= 10; i++) {
-    //     printf("%c", tokenizer->src[tokenizer->cursor + i]);
-    // }
-    // printf("\n\n");
+    // If one of the above cases where true.
+    jsn_token_lexeme_append(&token, tokenizer->src[tokenizer->cursor]);
+    tokenizer->cursor++;
     return token;
 }
 
@@ -596,9 +589,7 @@ struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
     case JSN_TOC_OBJECT_OPEN:
         return jsn_parse_object(tokenizer, token);
     case JSN_TOC_ARRAY_CLOSE:
-        return NULL;
     case JSN_TOC_OBJECT_CLOSE:
-        return NULL;
     case JSN_TOC_COMMA:
         return NULL;
     default:
@@ -681,7 +672,13 @@ jsn_handle jsn_from_string(const char *src) {
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
     // Start parsing, recursively.
-    return jsn_parse_value(&tokenizer, token);
+    jsn_handle root_node = jsn_parse_value(&tokenizer, token);
+
+    // We must free the tokenizer string.
+    free(tokenizer.src);
+    tokenizer.src = NULL;
+
+    return root_node;
 }
 
 jsn_handle jsn_from_file(const char *file_path) {
@@ -706,26 +703,35 @@ jsn_handle jsn_from_file(const char *file_path) {
 
     // Rewind and allocate a local string.
     fseek(file_ptr, 0, SEEK_SET);
-    char *source_buffer = malloc(file_size * CHAR_BIT);
-    source_buffer[file_size - 1] = '\0';
 
-    // Read the file into this new string.
-    fread(source_buffer, file_size, 1, file_ptr);
+    // Create the tokenizer from file source.
+    struct jsn_tokenizer tokenizer;
+    tokenizer.cursor = 0;
+    tokenizer.src = malloc(file_size * CHAR_BIT);
 
-    // Let's now try to parse the string into the tree.
-    struct jsn_node *node = jsn_from_string(source_buffer);
+    // Read the file source into the tokenizer.
+    fread(tokenizer.src, file_size, 1, file_ptr);
 
-    if (node == NULL) {
+    // Close the file steam.
+    fclose(file_ptr);
+
+    // Append null terminator.
+    tokenizer.src[file_size - 1] = '\0';
+
+    // Start parsing, recursively.
+    jsn_handle root_node = jsn_parse_value(&tokenizer, jsn_tokenizer_get_next_token(&tokenizer));
+
+    // Completed, so we can not free the tokenizer string.
+    free(tokenizer.src);
+    tokenizer.src = NULL;
+
+    if (root_node == NULL) {
         jsn_notice("The file could not be parsed, it might contain issues.");
         return NULL;
     }
 
-    // Free memory and close the file steam.
-    free(source_buffer);
-    fclose(file_ptr);
-
     // The node will be null anyway, so just return it.
-    return node;
+    return root_node;
 }
 
 jsn_handle jsn_create_object() {
@@ -973,19 +979,34 @@ int main(void) {
     // jsn_set_as_array(member);
     // jsn_print(member);
 
-    jsn_handle file_object = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/citylots.json");
-   //jsn_free(file_object);
+    jsn_benchmark_start();
+    jsn_handle file_object =
+        jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
 
-    jsn_handle file_object_other = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
+    // jsn_benchmark_start();
+    // jsn_handle file_object =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-large.json");
+    // jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
+
+    // jsn_handle file_object_2 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_handle file_object_3 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_handle file_object_4 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_handle file_object_5 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_handle file_object_6 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+
+    // jsn_free(file_object);
 
     // jsn_handle file_object_alt = jsn_from_file(
     //     "/home/vernon/Devenv/projects/json_c/data/latestblock.json");
 
     // jsn_handle file_object_alt_alt = jsn_from_file(
     //     "/home/vernon/Devenv/projects/json_c/data/search.json");
-
 
     // jsn_handle file_object = jsn_from_file(
     // "/home/vernon/Devenv/projects/json_c/data/testing-1.json");
