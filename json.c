@@ -9,19 +9,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* CONSTANTS
- * --------------------------------------------------------------------------*/
-
-#ifndef LEXEME_CHUNK_SIZE
-#define LEXEME_CHUNK_SIZE 8
-#endif
-
 /* UTILITIES
  * --------------------------------------------------------------------------*/
 
 void jsn_notice(const char *message) {
     printf("NOTICE: %s\n", message);
-    // exit (0);
+    // exit (1);
 }
 
 void jsn_failure(const char *message) {
@@ -49,10 +42,10 @@ void jsn_benchmark_end(const char *log_prefix) {
     printf("---------------------------------------------------------------\n");
 
     // Write the result to a file.
-    FILE *f = fopen("/home/vernon/Devenv/projects/json_c/benchmarking.txt", "a");
+    FILE *f =
+        fopen("/home/vernon/Devenv/projects/json_c/benchmarking.txt", "a");
 
-    if (f == NULL)
-    {
+    if (f == NULL) {
         printf("Error opening file!\n");
         exit(1);
     }
@@ -60,7 +53,8 @@ void jsn_benchmark_end(const char *log_prefix) {
     // get the time.
     time_t t = time(NULL);
     struct tm tm = *localtime(&t);
-    fprintf(f, "%d-%02d-%02d %02d:%02d:%02d | ", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    fprintf(f, "%d-%02d-%02d %02d:%02d:%02d | ", tm.tm_year + 1900,
+            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
     fprintf(f, "%s | %f seconds.\n", log_prefix, elapsed_time);
     fclose(f);
 }
@@ -84,22 +78,19 @@ enum jsn_token_kind {
 
 struct jsn_token {
     enum jsn_token_kind type;
-    unsigned int lexeme_len;
-    unsigned int lexeme_len_max;
     char *lexeme;
 };
 
 struct jsn_tokenizer {
-    // TODO: The source is already here, why not just point to areas inside the source itself.
-    // TODO: No this is not possible, because there's no null terminator available in source strings.
+    // Holds a copy of the provided source code.
     char *src;
     unsigned int src_cursor;
 
-    // TODO: How and where would we free this.
-    // To speed up parsing we basically append lexeme strings to a large pool of memory.
-    char *src_lexeme_pool;
-    unsigned int src_lexeme_pool_size;
-    unsigned int src_lexeme_pool_cursor;
+    // TODO: Think where this memory should be freed.
+    // A memory pool that holds all initial lexeme strings.
+    char *lexeme_memory_pool;
+    unsigned int lexeme_memory_pool_cursor;
+    unsigned int lexeme_memory_pool_size;
 };
 
 /**
@@ -107,8 +98,6 @@ struct jsn_tokenizer {
  * malloced memory.
  */
 struct jsn_tokenizer jsn_tokenizer_init(const char *src, unsigned int src_len) {
-    // We should perform our malloc operations here.
-
     // Construct tokenizer.
     struct jsn_tokenizer tokenizer;
 
@@ -117,10 +106,11 @@ struct jsn_tokenizer jsn_tokenizer_init(const char *src, unsigned int src_len) {
     tokenizer.src[src_len + 1] = '\0';
     tokenizer.src_cursor = 0;
 
-    // Lexeme memory pool, we assum it to be a max of double the source size.
-    tokenizer.src_lexeme_pool_size = src_len * 2;
-    tokenizer.src_lexeme_pool_cursor = 0;
-    tokenizer.src_lexeme_pool = malloc((src_len * 2) * CHAR_BIT);
+    /* Lexeme memory pool, we basically allocate a large pool of memory for all
+     * initial lexeme.*/
+    tokenizer.lexeme_memory_pool = malloc((src_len * 2) * CHAR_BIT);
+    tokenizer.lexeme_memory_pool_size = src_len * 2;
+    tokenizer.lexeme_memory_pool_cursor = 0;
 
     return tokenizer;
 };
@@ -135,40 +125,35 @@ void jsn_tokenizer_free_src(struct jsn_tokenizer *tokenizer) {
 
 /* TODO: Make this a utility function, as the only thing it does dynamically
  * expands the memory of a string. */
-void jsn_token_lexeme_append(struct jsn_token *token, struct jsn_tokenizer *tokenizer) {
-    char c = tokenizer->src[tokenizer->src_cursor];
-
+static inline void jsn_token_lexeme_append(struct jsn_token *token,
+                                           struct jsn_tokenizer *tokenizer) {
     // Add this char to the lexeme memory pool.
-
-    // TODO: This is where the performance falls off.
-    // TODO: this is very slow, because were allocating for every single string in the file.
-    // Handle dynamic memory allocation, in chunks.
-    if (token->lexeme == NULL) {
-        // TODO: Malloc is slow.
-        token->lexeme = malloc(LEXEME_CHUNK_SIZE * CHAR_BIT);
-        token->lexeme_len_max = LEXEME_CHUNK_SIZE;
-        token->lexeme_len = 1;
-    } else if (token->lexeme_len == token->lexeme_len_max) {
-        // realloc, should be faster.
-        token->lexeme_len_max = token->lexeme_len_max + LEXEME_CHUNK_SIZE;
-        token->lexeme = realloc(token->lexeme, token->lexeme_len_max * CHAR_BIT);
-    }
-
-    // Append the additional char.
-    token->lexeme[token->lexeme_len] = '\0';
-    token->lexeme[token->lexeme_len - 1] = c;
-
-    // Increment the length.
-    token->lexeme_len++;
+    tokenizer->lexeme_memory_pool[tokenizer->lexeme_memory_pool_cursor] =
+        tokenizer->src[tokenizer->src_cursor];
+    tokenizer->lexeme_memory_pool_cursor++;
 
     // Increment the tokenizer src.
     tokenizer->src_cursor++;
 }
 
 // TODO: Implement lexeme_end function.
-// void jsn_token_lexeme_
+static inline void jsn_token_lexeme_start(struct jsn_token *token,
+                                          struct jsn_tokenizer *tokenizer) {
+    token->lexeme =
+        &tokenizer->lexeme_memory_pool[tokenizer->lexeme_memory_pool_cursor];
+}
+
+static inline void jsn_token_lexeme_end(struct jsn_token *token,
+                                        struct jsn_tokenizer *tokenizer) {
+    // Set the null terminator.
+    tokenizer->lexeme_memory_pool[tokenizer->lexeme_memory_pool_cursor] = '\0';
+    tokenizer->lexeme_memory_pool_cursor++;
+}
 
 struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
+    // TODO: Optimize the tokenizing process, below.
+    // TODO: Implementing regex patterns instead.
+
     // Is the cursor on a number.
     struct jsn_token token;
     token.type = JSN_TOC_UNKNOWN;
@@ -180,16 +165,13 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         return jsn_tokenizer_get_next_token(tokenizer);
     }
 
-    // TODO: Optimize the tokenizing process, below.
-    // TODO: There must be a more efficient way to handle this.
-    // TODO: Implementing regex patterns instead.
-
-    // TODO: Handle different number types.
-    // TODO: We can really increase performance here.
     // Handle strings.
     if (tokenizer->src[tokenizer->src_cursor] == '"') {
         token.type = JSN_TOC_STRING;
         tokenizer->src_cursor++;
+
+        // Set lexeme starting location.
+        jsn_token_lexeme_start(&token, tokenizer);
 
         // This will keep adding bytes until the end of string is reached.
         while (tokenizer->src[tokenizer->src_cursor] != '"') {
@@ -199,7 +181,6 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
                 tokenizer->src[tokenizer->src_cursor + 1] == '\\') {
                 tokenizer->src_cursor++;
                 jsn_token_lexeme_append(&token, tokenizer);
-                // tokenizer->src_cursor++;
                 continue;
             }
 
@@ -208,16 +189,15 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
                 tokenizer->src[tokenizer->src_cursor + 1] == '"') {
                 tokenizer->src_cursor++;
                 jsn_token_lexeme_append(&token, tokenizer);
-                // tokenizer->src_cursor++;
                 continue;
             }
 
             // Perform operation.
             jsn_token_lexeme_append(&token, tokenizer);
-
-            // Move the cursor up.
-            // tokenizer->src_cursor++;
         }
+
+        // Set lexeme ending null terminator.
+        jsn_token_lexeme_end(&token, tokenizer);
 
         // Move the past the ending quote.
         tokenizer->src_cursor++;
@@ -230,14 +210,18 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         tokenizer->src[tokenizer->src_cursor] == '-') {
         token.type = JSN_TOC_NUMBER;
 
+        // Set lexeme starting location.
+        jsn_token_lexeme_start(&token, tokenizer);
+
         while (isdigit(tokenizer->src[tokenizer->src_cursor]) ||
                tokenizer->src[tokenizer->src_cursor] == '-' ||
                tokenizer->src[tokenizer->src_cursor] == '.') {
-            // Perform operation.
             jsn_token_lexeme_append(&token, tokenizer);
-            // Move the cursor up.
-            // tokenizer->src_cursor++;
         }
+
+        // Set lexeme ending null terminator.
+        jsn_token_lexeme_end(&token, tokenizer);
+
         return token;
     }
 
@@ -248,20 +232,24 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         // Here we can assume the this must be a boolean value.
         token.type = JSN_TOC_BOOLEAN;
 
+        // Set lexeme starting location.
+        jsn_token_lexeme_start(&token, tokenizer);
+
         // If true or false.
         if (tokenizer->src[tokenizer->src_cursor] == 't') {
             // true, 0123
             for (char i = 0; i < 4; i++) {
                 jsn_token_lexeme_append(&token, tokenizer);
-                // tokenizer->src_cursor++;
             }
         } else {
             // false, 01234
             for (char i = 0; i < 5; i++) {
                 jsn_token_lexeme_append(&token, tokenizer);
-                // tokenizer->src_cursor++;
             }
         }
+
+        // Set lexeme ending null terminator.
+        jsn_token_lexeme_end(&token, tokenizer);
 
         return token;
     }
@@ -271,43 +259,54 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         // Here we can assume the this must be a null value.
         token.type = JSN_TOC_NULL;
 
+        // Set lexeme starting location.
+        jsn_token_lexeme_start(&token, tokenizer);
+
         // null, 0123
         for (char i = 0; i < 4; i++) {
             jsn_token_lexeme_append(&token, tokenizer);
-            // tokenizer->src_cursor++;
         }
+
+        // Set lexeme ending null terminator.
+        jsn_token_lexeme_end(&token, tokenizer);
 
         return token;
     }
 
     // Check all other general token types.
     switch (tokenizer->src[tokenizer->src_cursor]) {
-        case '[':
-            token.type = JSN_TOC_ARRAY_OPEN;
-            break;
-        case ']':
-            token.type = JSN_TOC_ARRAY_CLOSE;
-            break;
-        case ',':
-            token.type = JSN_TOC_COMMA;
-            break;
-        case '{':
-            token.type = JSN_TOC_OBJECT_OPEN;
-            break;
-        case '}':
-            token.type = JSN_TOC_OBJECT_CLOSE;
-            break;
-        case ':':
-            token.type = JSN_TOC_COLON;
-            break;
-        default:
-            jsn_failure("Unknown token, found.");
-            return token;
+    case '[':
+        token.type = JSN_TOC_ARRAY_OPEN;
+        break;
+    case ']':
+        token.type = JSN_TOC_ARRAY_CLOSE;
+        break;
+    case ',':
+        token.type = JSN_TOC_COMMA;
+        break;
+    case '{':
+        token.type = JSN_TOC_OBJECT_OPEN;
+        break;
+    case '}':
+        token.type = JSN_TOC_OBJECT_CLOSE;
+        break;
+    case ':':
+        token.type = JSN_TOC_COLON;
+        break;
+    default:
+        jsn_failure("Unknown token, found.");
+        return token;
     }
+
+    // Set lexeme starting location.
+    jsn_token_lexeme_start(&token, tokenizer);
 
     // If one of the above cases where true.
     jsn_token_lexeme_append(&token, tokenizer);
-    // tokenizer->src_cursor++;
+
+    // Set lexeme ending null terminator.
+    jsn_token_lexeme_end(&token, tokenizer);
+
     return token;
 }
 
@@ -339,7 +338,7 @@ struct jsn_node {
     struct jsn_node **children;
 };
 
-struct jsn_node *jsn_create_node(enum jsn_node_type type) {
+static inline struct jsn_node *jsn_create_node(enum jsn_node_type type) {
     // Let's allocate some memory on the heap.
     struct jsn_node *node = malloc(sizeof(struct jsn_node));
 
@@ -735,7 +734,8 @@ jsn_handle jsn_from_file(const char *file_path) {
     struct jsn_tokenizer tokenizer = jsn_tokenizer_init(file_buffer, file_size);
 
     // Start parsing, recursively.
-    jsn_handle root_node = jsn_parse_value(&tokenizer, jsn_tokenizer_get_next_token(&tokenizer));
+    jsn_handle root_node =
+        jsn_parse_value(&tokenizer, jsn_tokenizer_get_next_token(&tokenizer));
 
     // Completed, so we can not free the tokenizer src.
     jsn_tokenizer_free_src(&tokenizer);
@@ -994,22 +994,41 @@ int main(void) {
     // jsn_set_as_array(member);
     // jsn_print(member);
 
+    // jsn_benchmark_start();
+    // jsn_handle file_object =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
+
     jsn_benchmark_start();
     jsn_handle file_object =
-        jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-    jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
+        jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-large.json");
+    jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
+    // jsn_print(file_object);
 
     // jsn_benchmark_start();
     // jsn_handle file_object =
-    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-large.json");
-    // jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-1.json");
+    // jsn_benchmark_end("Parsing of small, testing 1 JSON file.");
+    // jsn_print(file_object);
 
+    // jsn_handle member = jsn_get(team_members, 1, "Member 1");
+
+    // jsn_benchmark_start();
+    // jsn_handle file_object_1 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_handle file_object_2 =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_benchmark_end("Parsing of 2 * 180MB (360MB), city lots JSON file.");
+
+    // jsn_benchmark_start();
     // jsn_handle file_object_2 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_handle file_object_3 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_handle file_object_4 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_benchmark_end("Parsing of 3 * 180MB (540MB), city lots JSON file.");
+
     // jsn_handle file_object_5 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_handle file_object_6 =

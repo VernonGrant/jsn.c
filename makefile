@@ -1,4 +1,5 @@
 GCC=gcc -ggdb -Wall
+GCC_PROD=gcc -O2 -s -DNDEBUG
 
 objects = json.o
 
@@ -7,6 +8,10 @@ objects = json.o
 build: $(objects)
 	$(GCC) -o ./bin/json $(objects)
 	./bin/json
+
+build_prod: $(objects)
+	$(GCC_PROD) -o ./bin/json_prod $(objects)
+	./bin/json_prod
 
 json.o: json.c json.h
 	$(GCC) -c $<
