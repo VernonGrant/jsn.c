@@ -88,9 +88,9 @@ struct jsn_tokenizer {
 
     // TODO: Think where this memory should be freed.
     // A memory pool that holds all initial lexeme strings.
-    char *lexeme_memory_pool;
-    unsigned int lexeme_memory_pool_cursor;
-    unsigned int lexeme_memory_pool_size;
+    char *lexeme_pool;
+    unsigned int lexeme_pool_cursor;
+    unsigned int lexeme_pool_size;
 };
 
 /**
@@ -108,9 +108,9 @@ struct jsn_tokenizer jsn_tokenizer_init(const char *src, unsigned int src_len) {
 
     /* Lexeme memory pool, we basically allocate a large pool of memory for all
      * initial lexeme.*/
-    tokenizer.lexeme_memory_pool = malloc((src_len * 2) * CHAR_BIT);
-    tokenizer.lexeme_memory_pool_size = src_len * 2;
-    tokenizer.lexeme_memory_pool_cursor = 0;
+    tokenizer.lexeme_pool = malloc((src_len * 2) * CHAR_BIT);
+    tokenizer.lexeme_pool_size = src_len * 2;
+    tokenizer.lexeme_pool_cursor = 0;
 
     return tokenizer;
 };
@@ -126,11 +126,11 @@ void jsn_tokenizer_free_src(struct jsn_tokenizer *tokenizer) {
 /* TODO: Make this a utility function, as the only thing it does dynamically
  * expands the memory of a string. */
 static inline void jsn_token_lexeme_append(struct jsn_token *token,
-                                           struct jsn_tokenizer *tokenizer) {
+        struct jsn_tokenizer *tokenizer) {
     // Add this char to the lexeme memory pool.
-    tokenizer->lexeme_memory_pool[tokenizer->lexeme_memory_pool_cursor] =
+    tokenizer->lexeme_pool[tokenizer->lexeme_pool_cursor] =
         tokenizer->src[tokenizer->src_cursor];
-    tokenizer->lexeme_memory_pool_cursor++;
+    tokenizer->lexeme_pool_cursor++;
 
     // Increment the tokenizer src.
     tokenizer->src_cursor++;
@@ -138,16 +138,15 @@ static inline void jsn_token_lexeme_append(struct jsn_token *token,
 
 // TODO: Implement lexeme_end function.
 static inline void jsn_token_lexeme_start(struct jsn_token *token,
-                                          struct jsn_tokenizer *tokenizer) {
-    token->lexeme =
-        &tokenizer->lexeme_memory_pool[tokenizer->lexeme_memory_pool_cursor];
+        struct jsn_tokenizer *tokenizer) {
+    token->lexeme = &tokenizer->lexeme_pool[tokenizer->lexeme_pool_cursor];
 }
 
 static inline void jsn_token_lexeme_end(struct jsn_token *token,
-                                        struct jsn_tokenizer *tokenizer) {
+        struct jsn_tokenizer *tokenizer) {
     // Set the null terminator.
-    tokenizer->lexeme_memory_pool[tokenizer->lexeme_memory_pool_cursor] = '\0';
-    tokenizer->lexeme_memory_pool_cursor++;
+    tokenizer->lexeme_pool[tokenizer->lexeme_pool_cursor] = '\0';
+    tokenizer->lexeme_pool_cursor++;
 }
 
 struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
@@ -178,7 +177,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
             // Handled escaped backslashes.
             if (tokenizer->src[tokenizer->src_cursor] == '\\' &&
-                tokenizer->src[tokenizer->src_cursor + 1] == '\\') {
+                    tokenizer->src[tokenizer->src_cursor + 1] == '\\') {
                 tokenizer->src_cursor++;
                 jsn_token_lexeme_append(&token, tokenizer);
                 continue;
@@ -186,7 +185,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
             // Handled escaped quotes.
             if (tokenizer->src[tokenizer->src_cursor] == '\\' &&
-                tokenizer->src[tokenizer->src_cursor + 1] == '"') {
+                    tokenizer->src[tokenizer->src_cursor + 1] == '"') {
                 tokenizer->src_cursor++;
                 jsn_token_lexeme_append(&token, tokenizer);
                 continue;
@@ -207,15 +206,15 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
     // Get the number token.
     if (isdigit(tokenizer->src[tokenizer->src_cursor]) ||
-        tokenizer->src[tokenizer->src_cursor] == '-') {
+            tokenizer->src[tokenizer->src_cursor] == '-') {
         token.type = JSN_TOC_NUMBER;
 
         // Set lexeme starting location.
         jsn_token_lexeme_start(&token, tokenizer);
 
         while (isdigit(tokenizer->src[tokenizer->src_cursor]) ||
-               tokenizer->src[tokenizer->src_cursor] == '-' ||
-               tokenizer->src[tokenizer->src_cursor] == '.') {
+                tokenizer->src[tokenizer->src_cursor] == '-' ||
+                tokenizer->src[tokenizer->src_cursor] == '.') {
             jsn_token_lexeme_append(&token, tokenizer);
         }
 
@@ -227,7 +226,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
     // Handle boolean types
     if (tokenizer->src[tokenizer->src_cursor] == 't' ||
-        tokenizer->src[tokenizer->src_cursor] == 'f') {
+            tokenizer->src[tokenizer->src_cursor] == 'f') {
 
         // Here we can assume the this must be a boolean value.
         token.type = JSN_TOC_BOOLEAN;
@@ -275,27 +274,27 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
     // Check all other general token types.
     switch (tokenizer->src[tokenizer->src_cursor]) {
-    case '[':
-        token.type = JSN_TOC_ARRAY_OPEN;
-        break;
-    case ']':
-        token.type = JSN_TOC_ARRAY_CLOSE;
-        break;
-    case ',':
-        token.type = JSN_TOC_COMMA;
-        break;
-    case '{':
-        token.type = JSN_TOC_OBJECT_OPEN;
-        break;
-    case '}':
-        token.type = JSN_TOC_OBJECT_CLOSE;
-        break;
-    case ':':
-        token.type = JSN_TOC_COLON;
-        break;
-    default:
-        jsn_failure("Unknown token, found.");
-        return token;
+        case '[':
+            token.type = JSN_TOC_ARRAY_OPEN;
+            break;
+        case ']':
+            token.type = JSN_TOC_ARRAY_CLOSE;
+            break;
+        case ',':
+            token.type = JSN_TOC_COMMA;
+            break;
+        case '{':
+            token.type = JSN_TOC_OBJECT_OPEN;
+            break;
+        case '}':
+            token.type = JSN_TOC_OBJECT_CLOSE;
+            break;
+        case ':':
+            token.type = JSN_TOC_COLON;
+            break;
+        default:
+            jsn_failure("Unknown token, found.");
+            return token;
     }
 
     // Set lexeme starting location.
@@ -476,10 +475,10 @@ int jsn_get_node_direct_child_index(jsn_handle handle, const char *key) {
  * --------------------------------------------------------------------------*/
 
 struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
-                                 struct jsn_token token);
+        struct jsn_token token);
 
 struct jsn_node *jsn_parse_string(struct jsn_tokenizer *tokenizer,
-                                  struct jsn_token token) {
+        struct jsn_token token) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
     node->value.value_string = token.lexeme;
@@ -487,13 +486,13 @@ struct jsn_node *jsn_parse_string(struct jsn_tokenizer *tokenizer,
 }
 
 struct jsn_node *jsn_parse_null(struct jsn_tokenizer *tokenizer,
-                                struct jsn_token token) {
+        struct jsn_token token) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_NULL);
     return node;
 }
 
 struct jsn_node *jsn_parse_number(struct jsn_tokenizer *tokenizer,
-                                  struct jsn_token token) {
+        struct jsn_token token) {
     struct jsn_node *node;
 
     // We check if the token lexeme contains a period, then we know that it's a
@@ -512,7 +511,7 @@ struct jsn_node *jsn_parse_number(struct jsn_tokenizer *tokenizer,
 }
 
 struct jsn_node *jsn_parse_boolean(struct jsn_tokenizer *tokenizer,
-                                   struct jsn_token token) {
+        struct jsn_token token) {
     struct jsn_node *node;
 
     if (strcmp(token.lexeme, "true") == 0) {
@@ -529,7 +528,7 @@ struct jsn_node *jsn_parse_boolean(struct jsn_tokenizer *tokenizer,
 }
 
 struct jsn_node *jsn_parse_array(struct jsn_tokenizer *tokenizer,
-                                 struct jsn_token token) {
+        struct jsn_token token) {
     // Create our array node type.
     struct jsn_node *node = jsn_create_node(JSN_NODE_ARRAY);
 
@@ -549,7 +548,7 @@ struct jsn_node *jsn_parse_array(struct jsn_tokenizer *tokenizer,
 }
 
 struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
-                                  struct jsn_token token) {
+        struct jsn_token token) {
     // Create our object node type..
     struct jsn_node *node = jsn_create_node(JSN_NODE_OBJECT);
 
@@ -592,27 +591,27 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
 }
 
 struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
-                                 struct jsn_token token) {
+        struct jsn_token token) {
     switch (token.type) {
-    case JSN_TOC_NULL:
-        return jsn_parse_null(tokenizer, token);
-    case JSN_TOC_NUMBER:
-        return jsn_parse_number(tokenizer, token);
-    case JSN_TOC_STRING:
-        return jsn_parse_string(tokenizer, token);
-    case JSN_TOC_BOOLEAN:
-        return jsn_parse_boolean(tokenizer, token);
-    case JSN_TOC_ARRAY_OPEN:
-        return jsn_parse_array(tokenizer, token);
-    case JSN_TOC_OBJECT_OPEN:
-        return jsn_parse_object(tokenizer, token);
-    case JSN_TOC_ARRAY_CLOSE:
-    case JSN_TOC_OBJECT_CLOSE:
-    case JSN_TOC_COMMA:
-        return NULL;
-    default:
-        jsn_failure("Undefined token found.");
-        break;
+        case JSN_TOC_NULL:
+            return jsn_parse_null(tokenizer, token);
+        case JSN_TOC_NUMBER:
+            return jsn_parse_number(tokenizer, token);
+        case JSN_TOC_STRING:
+            return jsn_parse_string(tokenizer, token);
+        case JSN_TOC_BOOLEAN:
+            return jsn_parse_boolean(tokenizer, token);
+        case JSN_TOC_ARRAY_OPEN:
+            return jsn_parse_array(tokenizer, token);
+        case JSN_TOC_OBJECT_OPEN:
+            return jsn_parse_object(tokenizer, token);
+        case JSN_TOC_ARRAY_CLOSE:
+        case JSN_TOC_OBJECT_CLOSE:
+        case JSN_TOC_COMMA:
+            return NULL;
+        default:
+            jsn_failure("Undefined token found.");
+            break;
     }
 
     return NULL;
@@ -637,32 +636,32 @@ void jsn_node_print_tree(struct jsn_node *node, unsigned int indent) {
     printf("%sNode: \n", indent_str);
     printf("%sKey: %s\n", indent_str, node->key);
     switch (node->type) {
-    case JSN_NODE_NULL:
-        printf("%sType: %s\n", indent_str, "NULL");
-        printf("%sValue: %s\n", indent_str, "null");
-        break;
-    case JSN_NODE_INTEGER:
-        printf("%sType: %s\n", indent_str, "INTEGER");
-        printf("%sValue: %i\n", indent_str, node->value.value_integer);
-        break;
-    case JSN_NODE_DOUBLE:
-        printf("%sType: %s\n", indent_str, "DOUBLE");
-        printf("%sValue: %f\n", indent_str, node->value.value_double);
-        break;
-    case JSN_NODE_BOOLEAN:
-        printf("%sType: %s\n", indent_str, "BOOLEAN");
-        printf("%sValue: %i\n", indent_str, node->value.value_boolean);
-        break;
-    case JSN_NODE_STRING:
-        printf("%sType: %s\n", indent_str, "STRING");
-        printf("%sValue: %s\n", indent_str, node->value.value_string);
-        break;
-    case JSN_NODE_ARRAY:
-        printf("%sType: %s\n", indent_str, "ARRAY");
-        break;
-    case JSN_NODE_OBJECT:
-        printf("%sType: %s\n", indent_str, "OBJECT");
-        break;
+        case JSN_NODE_NULL:
+            printf("%sType: %s\n", indent_str, "NULL");
+            printf("%sValue: %s\n", indent_str, "null");
+            break;
+        case JSN_NODE_INTEGER:
+            printf("%sType: %s\n", indent_str, "INTEGER");
+            printf("%sValue: %i\n", indent_str, node->value.value_integer);
+            break;
+        case JSN_NODE_DOUBLE:
+            printf("%sType: %s\n", indent_str, "DOUBLE");
+            printf("%sValue: %f\n", indent_str, node->value.value_double);
+            break;
+        case JSN_NODE_BOOLEAN:
+            printf("%sType: %s\n", indent_str, "BOOLEAN");
+            printf("%sValue: %i\n", indent_str, node->value.value_boolean);
+            break;
+        case JSN_NODE_STRING:
+            printf("%sType: %s\n", indent_str, "STRING");
+            printf("%sValue: %s\n", indent_str, node->value.value_string);
+            break;
+        case JSN_NODE_ARRAY:
+            printf("%sType: %s\n", indent_str, "ARRAY");
+            break;
+        case JSN_NODE_OBJECT:
+            printf("%sType: %s\n", indent_str, "OBJECT");
+            break;
     }
     printf("%sChildren_Count: %u\n", indent_str, node->children_count);
 
@@ -1000,8 +999,8 @@ int main(void) {
     // jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
 
     jsn_benchmark_start();
-    jsn_handle file_object =
-        jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-large.json");
+    jsn_handle file_object = jsn_from_file(
+            "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
     jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
     // jsn_print(file_object);
 
