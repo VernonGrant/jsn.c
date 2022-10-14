@@ -157,25 +157,18 @@ static inline void
 jsn_tokenizer_lexeme_pool_append_null(struct jsn_tokenizer *tokenizer) {
     // Set the null terminator.
     tokenizer->lexemes[tokenizer->lexemes_cursor] = '\0';
-
     tokenizer->lexemes_cursor++;
 }
 
-/* TODO: Make this a utility function, as the only thing it does dynamically
- * expands the memory of a string. */
 static inline void
 jsn_tokenizer_lexeme_pool_append(struct jsn_tokenizer *tokenizer) {
     // Add this char to the lexeme memory pool.
     tokenizer->lexemes[tokenizer->lexemes_cursor] =
         tokenizer->source[tokenizer->source_cursor];
-
     tokenizer->lexemes_cursor++;
-
-    // Increment the tokenizer src.
     tokenizer->source_cursor++;
 }
 
-// TODO: Implement lexeme_end function.
 static inline void
 jsn_token_set_lexeme_pointer(struct jsn_token *token,
                              struct jsn_tokenizer *tokenizer) {
@@ -207,6 +200,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
             char current_char = tokenizer->source[tokenizer->source_cursor];
             char next_char = tokenizer->source[tokenizer->source_cursor + 1];
 
+            // Maybe handle this during output?, yes.
             // Handled escaping of backslashes.
             if (current_char == '\\') {
                 // Skip escape char.
@@ -218,7 +212,8 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
                 // Skip escape char.
                 if (next_char == '"') {
-                    tokenizer->source_cursor++;
+                    // tokenizer->source_cursor++;
+                    jsn_tokenizer_lexeme_pool_append(tokenizer);
                     jsn_tokenizer_lexeme_pool_append(tokenizer);
                     continue;
                 }
@@ -366,7 +361,9 @@ struct jsn_node *jsn_create_node(enum jsn_node_type type) {
     return node;
 }
 
-struct jsn_node *jsn_create_node_pre(struct jsn_node **nodes, unsigned int index, enum jsn_node_type type) {
+struct jsn_node *jsn_create_node_pre(struct jsn_node **nodes,
+                                     unsigned int index,
+                                     enum jsn_node_type type) {
     // TODO: Can we pre-calculate the number of nodes required?
     // TODO: Calling malloc for every single node is a bad idea.
     // TODO: Is it possible to chunk these?
@@ -757,7 +754,8 @@ jsn_handle jsn_from_file(const char *file_path) {
     fclose(file_ptr);
 
     // Create tokenizer from buffer.
-    struct jsn_tokenizer tokenizer = jsn_tokenizer_init(file_buffer, file_size, false);
+    struct jsn_tokenizer tokenizer =
+        jsn_tokenizer_init(file_buffer, file_size, false);
     jsn_print_memory_usage("Memory used after tokenization init.");
 
     // Get the first token. (DO dry run)
@@ -1043,7 +1041,6 @@ int main(void) {
     jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
 
     // // TODO: We should clear memory here.
-
     // jsn_handle file_object_2 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_benchmark_end("Parsing of 2 * 180MB (360MB), city lots JSON file.");
@@ -1056,7 +1053,6 @@ int main(void) {
     // jsn_handle file_object_4 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_benchmark_end("Parsing of 3 * 180MB (540MB), city lots JSON file.");
-
     // jsn_handle file_object_5 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_handle file_object_6 =
@@ -1064,8 +1060,10 @@ int main(void) {
 
     // jsn_free(file_object);
 
+    // jsn_benchmark_start();
     // jsn_handle file_object_alt = jsn_from_file(
     //     "/home/vernon/Devenv/projects/json_c/data/latestblock.json");
+    // jsn_benchmark_end("Parsing of long numbers only, small file JSON file.");
 
     // jsn_handle file_object_alt_alt = jsn_from_file(
     //     "/home/vernon/Devenv/projects/json_c/data/search.json");
