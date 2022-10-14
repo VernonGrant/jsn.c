@@ -47,7 +47,7 @@ static clock_t benchmark_clock;
 void jsn_print_memory_usage(const char *message) {
     struct rusage usage;
     getrusage(RUSAGE_SELF, &usage);
-    printf("%s: %ld MB!\n",message, (usage.ru_maxrss / 1024));
+    printf("%s: %ld MB!\n", message, (usage.ru_maxrss / 1024));
 }
 
 void jsn_benchmark_start() {
@@ -125,7 +125,8 @@ struct jsn_tokenizer {
  * Initialized the tokenizer, the passed in char pointer should point to
  * malloced memory.
  */
-struct jsn_tokenizer jsn_tokenizer_init(const char *source, unsigned int source_length) {
+struct jsn_tokenizer jsn_tokenizer_init(const char *source,
+                                        unsigned int source_length) {
     // Construct tokenizer.
     struct jsn_tokenizer tokenizer;
 
@@ -143,7 +144,8 @@ struct jsn_tokenizer jsn_tokenizer_init(const char *source, unsigned int source_
     return tokenizer;
 };
 
-static inline void jsn_tokenizer_lexeme_pool_append_null(struct jsn_tokenizer *tokenizer) {
+static inline void
+jsn_tokenizer_lexeme_pool_append_null(struct jsn_tokenizer *tokenizer) {
     // Set the null terminator.
     tokenizer->lexemes[tokenizer->lexemes_cursor] = '\0';
     tokenizer->lexemes_cursor++;
@@ -151,7 +153,8 @@ static inline void jsn_tokenizer_lexeme_pool_append_null(struct jsn_tokenizer *t
 
 /* TODO: Make this a utility function, as the only thing it does dynamically
  * expands the memory of a string. */
-static inline void jsn_tokenizer_lexeme_pool_append( struct jsn_tokenizer *tokenizer) {
+static inline void
+jsn_tokenizer_lexeme_pool_append(struct jsn_tokenizer *tokenizer) {
     // Add this char to the lexeme memory pool.
     tokenizer->lexemes[tokenizer->lexemes_cursor] =
         tokenizer->source[tokenizer->source_cursor];
@@ -170,8 +173,9 @@ void jsn_tokenizer_free_src(struct jsn_tokenizer *tokenizer) {
 }
 
 // TODO: Implement lexeme_end function.
-static inline void jsn_token_set_lexeme_pointer(struct jsn_token *token,
-                                          struct jsn_tokenizer *tokenizer) {
+static inline void
+jsn_token_set_lexeme_pointer(struct jsn_token *token,
+                             struct jsn_tokenizer *tokenizer) {
     token->lexeme = &tokenizer->lexemes[tokenizer->lexemes_cursor];
 }
 
@@ -306,7 +310,8 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         tokenizer->source_cursor++;
         break;
     default:
-        printf("The char is: %c\n", tokenizer->source[tokenizer->source_cursor]);
+        printf("The char is: %c\n",
+               tokenizer->source[tokenizer->source_cursor]);
         jsn_failure("Unknown token, found.");
         return token;
     }
@@ -518,8 +523,7 @@ struct jsn_node *jsn_parse_number(struct jsn_tokenizer *tokenizer,
 }
 
 struct jsn_node *jsn_parse_boolean(struct jsn_tokenizer *tokenizer,
-                                   struct jsn_token token,
-                                   bool value) {
+                                   struct jsn_token token, bool value) {
     struct jsn_node *node;
     node = jsn_create_node(JSN_NODE_BOOLEAN);
     node->value.value_boolean = value;
@@ -702,7 +706,7 @@ jsn_handle jsn_from_file(const char *file_path) {
     // TODO: Note there's a file size limit here for fseek and fread.
     // TODO: Will require a more sophisticated solution.
 
-    jsn_benchmark_start();
+    // jsn_benchmark_start();
     FILE *file_ptr;
 
     // Open the file.
@@ -733,21 +737,21 @@ jsn_handle jsn_from_file(const char *file_path) {
     // TODO: This benchmark is a little slow.
     // Create the tokenizer from and point the src to the above buffer..
     struct jsn_tokenizer tokenizer = jsn_tokenizer_init(file_buffer, file_size);
-    jsn_benchmark_end("Tokenizer initialization time for a 180MB JSON file.");
+    // jsn_benchmark_end("Tokenizer initialization time for a 180MB JSON file.");
     jsn_print_memory_usage("Memory used after tokenization init.");
 
     // Get the first token.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
-    jsn_benchmark_start();
+    // jsn_benchmark_start();
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
-    jsn_benchmark_end("Parsing time for a 180MB JSON file.");
+    // jsn_benchmark_end("Parsing time for a 180MB JSON file.");
     jsn_print_memory_usage("Memory used after parsing.");
 
     // Completed, so we can not free the tokenizer src.
     // jsn_tokenizer_free_src(&tokenizer);
-    jsn_print_memory_usage("Memory used after freeing tokenizer source.");
+    // jsn_print_memory_usage("Memory used after freeing tokenizer source.");
 
     if (root_node == NULL) {
         jsn_notice("The file could not be parsed, it might contain issues.");
@@ -1004,21 +1008,19 @@ int main(void) {
     // jsn_set_as_array(member);
     // jsn_print(member);
 
-     // jsn_handle file_object =
-     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_handle file_object =
+    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_print(file_object);
 
     // jsn_benchmark_start();
     // jsn_handle file_object = jsn_from_file(
-    //         "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
+    //     "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
     // jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
-    //jsn_print(file_object);
+    // jsn_print(file_object);
 
-    // jsn_benchmark_start();
     jsn_handle file_object =
         jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-1.json");
-    // jsn_benchmark_end("Parsing of small, testing 1 JSON file.");
-    // jsn_print(file_object);
+    jsn_print(file_object);
 
     // jsn_handle member = jsn_get(team_members, 1, "Member 1");
 
