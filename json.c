@@ -135,6 +135,7 @@ jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
     struct jsn_tokenizer tokenizer;
 
     if (make_copy) {
+        // TODO: Handle allocation errors here.
         // Allocate the shared memory for source and lexemes.
         tokenizer.shared_memory = malloc(source_length * CHAR_BIT);
     } else {
@@ -349,26 +350,10 @@ struct jsn_node *jsn_create_node(enum jsn_node_type type) {
     // TODO: Can we pre-calculate the number of nodes required?
     // TODO: Calling malloc for every single node is a bad idea.
     // TODO: Is it possible to chunk these?
+
+    // TODO: Handle allocation errors here.
     // Let's allocate some memory on the heap.
     struct jsn_node *node = malloc(sizeof(struct jsn_node));
-
-    // Set some sane defaults.
-    node->type = type;
-    node->children_count = 0;
-    node->children = NULL;
-    node->key = NULL;
-
-    return node;
-}
-
-struct jsn_node *jsn_create_node_pre(struct jsn_node **nodes,
-                                     unsigned int index,
-                                     enum jsn_node_type type) {
-    // TODO: Can we pre-calculate the number of nodes required?
-    // TODO: Calling malloc for every single node is a bad idea.
-    // TODO: Is it possible to chunk these?
-    // Let's allocate some memory on the heap.
-    struct jsn_node *node = nodes[index];
 
     // Set some sane defaults.
     node->type = type;
@@ -745,6 +730,7 @@ jsn_handle jsn_from_file(const char *file_path) {
     // Rewind and allocate a local string.
     fseek(file_ptr, 0, SEEK_SET);
 
+    // TODO: Handle allocation errors here.
     // Allocate and copy file source into a temp buffer.
     char *file_buffer = malloc(file_size * CHAR_BIT);
     fread(file_buffer, file_size, 1, file_ptr);
@@ -804,6 +790,8 @@ jsn_handle jsn_create_boolean(bool value) {
 
 jsn_handle jsn_create_string(const char *value) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
+
+    // TODO: Handle allocation errors here.
     node->value.value_string = strcpy(malloc(strlen(value) * CHAR_BIT), value);
     return node;
 }
@@ -872,6 +860,7 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
         node->key = NULL;
     }
 
+    // TODO: Handle allocation errors here.
     // Allocate for the nodes new key.
     node->key = strcpy(malloc(strlen(key) * CHAR_BIT), key);
 
@@ -960,6 +949,8 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
     // Set the node's new type and value.
     handle->type = JSN_NODE_STRING;
     unsigned int str_len = strlen(value) + 1;
+
+    // TODO: Handle allocation errors here.
     handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
 }
 
