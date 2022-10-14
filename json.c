@@ -22,9 +22,6 @@
  *
  * The default value of 100, should be enough for 99% of the cases.
  */
-// #ifndef JSN_LEXEME_POOL_EXCESS
-// #define JSN_LEXEME_POOL_EXCESS 100
-// #endif
 
 /* UTILITIES
  * --------------------------------------------------------------------------*/
@@ -107,16 +104,26 @@ struct jsn_token {
 };
 
 struct jsn_tokenizer {
-    // Holds original source code.
+    // Points to source starting point.
     char *source;
     unsigned int source_cursor;
 
-    // Holds all lexemes.
+    // Pointer to lexemes starting point.
     char *lexemes;
     unsigned int lexemes_cursor;
 
-    // Both source and lexeme's are stored in one chunk of memory, save time.
+    // TODO: Find a way to clear this memory after done.
+    /**
+     * Both source and token lexemes are stored in the same memory.
+     *
+     * This works because the source cursor pointer will always be ahead of the
+     * lexemes cursor pointer. So as we move through the source code, we start
+     * writing lexeme's to the front of the memory that holds the source code.
+     */
     char *shared_memory;
+
+    // Required tree node count.
+    unsigned int pre_node_count;
 };
 
 /**
@@ -125,21 +132,27 @@ struct jsn_tokenizer {
  * Initialized the tokenizer, the passed in char pointer should point to
  * malloced memory.
  */
-struct jsn_tokenizer jsn_tokenizer_init(const char *source,
-                                        unsigned int source_length) {
+struct jsn_tokenizer
+jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
     // Construct tokenizer.
     struct jsn_tokenizer tokenizer;
+    tokenizer.pre_node_count = 0;
 
-    // Allocate the shared memory.
-    tokenizer.shared_memory = malloc((source_length * 2) * CHAR_BIT);
+    if (make_copy) {
+        // Allocate the shared memory for source and lexemes.
+        tokenizer.shared_memory = malloc(source_length * CHAR_BIT);
+    } else {
+        // Set the shared memory to the provided pointer.
+        tokenizer.shared_memory = source;
+    }
 
-    // Set source string starting pointer and add null terminator.
+    // Set source string starting pointer and copy it into the tokenizer.
     tokenizer.source_cursor = 0;
     tokenizer.source = strcpy(tokenizer.shared_memory, source);
 
     // Set the lexemes starting pointer.
     tokenizer.lexemes_cursor = 0;
-    tokenizer.lexemes = &tokenizer.shared_memory[source_length + 1];
+    tokenizer.lexemes = &tokenizer.shared_memory[0];
 
     return tokenizer;
 };
@@ -162,14 +175,6 @@ jsn_tokenizer_lexeme_pool_append(struct jsn_tokenizer *tokenizer) {
 
     // Increment the tokenizer src.
     tokenizer->source_cursor++;
-}
-
-/**
- * Only call if you want to free the source memory.
- */
-void jsn_tokenizer_free_src(struct jsn_tokenizer *tokenizer) {
-    free(tokenizer->source);
-    tokenizer->source = NULL;
 }
 
 // TODO: Implement lexeme_end function.
@@ -195,6 +200,9 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     if (tokenizer->source[tokenizer->source_cursor] == '"') {
         token.type = JSN_TOC_STRING;
         tokenizer->source_cursor++;
+
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
 
         // Set lexeme starting location.
         jsn_token_set_lexeme_pointer(&token, tokenizer);
@@ -238,6 +246,9 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     if (isdigit(tokenizer->source[tokenizer->source_cursor])) {
         token.type = JSN_TOC_NUMBER;
 
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
+
         // Set lexeme starting location.
         jsn_token_set_lexeme_pointer(&token, tokenizer);
 
@@ -254,6 +265,9 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     // Get negative numbers.
     if (tokenizer->source[tokenizer->source_cursor] == '-') {
         token.type = JSN_TOC_NUMBER;
+
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
 
         // Set lexeme starting location.
         jsn_token_set_lexeme_pointer(&token, tokenizer);
@@ -276,38 +290,56 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     case 't':
         token.type = JSN_TOC_BOOLEAN_TRUE;
         tokenizer->source_cursor += 4; // true, 1234
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case 'f':
         token.type = JSN_TOC_BOOLEAN_FALSE;
         tokenizer->source_cursor += 5; // false, 12345
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case 'n':
         token.type = JSN_TOC_NULL;
         tokenizer->source_cursor += 4; // null, 1234
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         return token;
     case '[':
         token.type = JSN_TOC_ARRAY_OPEN;
         tokenizer->source_cursor++;
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case ']':
         token.type = JSN_TOC_ARRAY_CLOSE;
         tokenizer->source_cursor++;
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case ',':
         token.type = JSN_TOC_COMMA;
         tokenizer->source_cursor++;
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case '{':
         token.type = JSN_TOC_OBJECT_OPEN;
         tokenizer->source_cursor++;
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case '}':
         token.type = JSN_TOC_OBJECT_CLOSE;
         tokenizer->source_cursor++;
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     case ':':
         token.type = JSN_TOC_COLON;
         tokenizer->source_cursor++;
+        // TODO: increment node count.
+        tokenizer->pre_node_count++;
         break;
     default:
         printf("The char is: %c\n",
@@ -340,16 +372,35 @@ union jsn_node_value {
 };
 
 struct jsn_node {
+    char *key;
     enum jsn_node_type type;
     union jsn_node_value value;
-    char *key;
     unsigned int children_count;
     struct jsn_node **children;
 };
 
 struct jsn_node *jsn_create_node(enum jsn_node_type type) {
+    // TODO: Can we pre-calculate the number of nodes required?
+    // TODO: Calling malloc for every single node is a bad idea.
+    // TODO: Is it possible to chunk these?
     // Let's allocate some memory on the heap.
     struct jsn_node *node = malloc(sizeof(struct jsn_node));
+
+    // Set some sane defaults.
+    node->type = type;
+    node->children_count = 0;
+    node->children = NULL;
+    node->key = NULL;
+
+    return node;
+}
+
+struct jsn_node *jsn_create_node_pre(struct jsn_node **nodes, unsigned int index, enum jsn_node_type type) {
+    // TODO: Can we pre-calculate the number of nodes required?
+    // TODO: Calling malloc for every single node is a bad idea.
+    // TODO: Is it possible to chunk these?
+    // Let's allocate some memory on the heap.
+    struct jsn_node *node = nodes[index];
 
     // Set some sane defaults.
     node->type = type;
@@ -687,17 +738,18 @@ void jsn_print(jsn_handle handle) {
 
 // TODO: What is the meaning of const?
 jsn_handle jsn_from_string(const char *src) {
+    // The string will get copied, so the below cast is fine.
     // Initialize our tokenizer, for this specific source string.
-    struct jsn_tokenizer tokenizer = jsn_tokenizer_init(src, strlen(src) + 1);
+    struct jsn_tokenizer tokenizer =
+        jsn_tokenizer_init((char *)src, strlen(src), true);
 
     // Prime the tokenizer.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
+    // TODO: malloc all the space needed for the nodes in one chunk.
+
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
-
-    // Frees the tokenizer source.
-    // jsn_tokenizer_free_src(&tokenizer);
 
     return root_node;
 }
@@ -706,7 +758,6 @@ jsn_handle jsn_from_file(const char *file_path) {
     // TODO: Note there's a file size limit here for fseek and fread.
     // TODO: Will require a more sophisticated solution.
 
-    // jsn_benchmark_start();
     FILE *file_ptr;
 
     // Open the file.
@@ -734,24 +785,17 @@ jsn_handle jsn_from_file(const char *file_path) {
     // Close the file steam.
     fclose(file_ptr);
 
-    // TODO: This benchmark is a little slow.
-    // Create the tokenizer from and point the src to the above buffer..
-    struct jsn_tokenizer tokenizer = jsn_tokenizer_init(file_buffer, file_size);
-    // jsn_benchmark_end("Tokenizer initialization time for a 180MB JSON file.");
+    // Create tokenizer from buffer.
+    struct jsn_tokenizer tokenizer =
+        jsn_tokenizer_init(file_buffer, file_size, false);
     jsn_print_memory_usage("Memory used after tokenization init.");
 
     // Get the first token.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
-    // jsn_benchmark_start();
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
-    // jsn_benchmark_end("Parsing time for a 180MB JSON file.");
     jsn_print_memory_usage("Memory used after parsing.");
-
-    // Completed, so we can not free the tokenizer src.
-    // jsn_tokenizer_free_src(&tokenizer);
-    // jsn_print_memory_usage("Memory used after freeing tokenizer source.");
 
     if (root_node == NULL) {
         jsn_notice("The file could not be parsed, it might contain issues.");
@@ -760,7 +804,6 @@ jsn_handle jsn_from_file(const char *file_path) {
 
     // The node will be null anyway, so just return it.
     return root_node;
-    // return NULL;
 }
 
 jsn_handle jsn_create_object() {
@@ -1027,6 +1070,10 @@ int main(void) {
     // jsn_benchmark_start();
     // jsn_handle file_object_1 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    // jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
+
+    // // TODO: We should clear memory here.
+
     // jsn_handle file_object_2 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_benchmark_end("Parsing of 2 * 180MB (360MB), city lots JSON file.");
