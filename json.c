@@ -11,6 +11,13 @@
 #include <sys/resource.h>
 #include <unistd.h>
 
+/* CONFIGURATION
+ * --------------------------------------------------------------------------*/
+
+#ifndef JSN_NODE_KEY_SIZE
+#define JSN_NODE_KEY_SIZE 25
+#endif
+
 /* SETTINGS
  * --------------------------------------------------------------------------*/
 
@@ -28,7 +35,6 @@
 
 void jsn_notice(const char *message) {
     printf("NOTICE: %s\n", message);
-    // exit (1);
 }
 
 void jsn_failure(const char *message) {
@@ -100,27 +106,18 @@ enum jsn_token_kind {
 
 struct jsn_token {
     enum jsn_token_kind type;
-    char *lexeme;
+    // char *lexeme;
+    char *lexeme_start;
+    char *lexeme_end; // The ending address, becomes our null terminator.
+    unsigned int lexeme_length;
 };
+
+// TODO: Tokenizer, lexemes should never be stored in memory.
 
 struct jsn_tokenizer {
     // Points to source starting point.
     char *source;
     unsigned int source_cursor;
-
-    // Pointer to lexemes starting point.
-    char *lexemes;
-    unsigned int lexemes_cursor;
-
-    // TODO: Find a way to clear this memory after done.
-    /**
-     * Both source and token lexemes are stored in the same memory.
-     *
-     * This works because the source cursor pointer will always be ahead of the
-     * lexemes cursor pointer. So as we move through the source code, we start
-     * writing lexeme's to the front of the memory that holds the source code.
-     */
-    char *shared_memory;
 };
 
 /**
@@ -135,52 +132,38 @@ jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
     struct jsn_tokenizer tokenizer;
 
     if (make_copy) {
-        // TODO: Handle allocation errors here.
-        // Allocate the shared memory for source and lexemes.
-        tokenizer.shared_memory = malloc(source_length * CHAR_BIT);
+        // Allocate the memory for source.
+        tokenizer.source = strcpy(malloc(source_length * CHAR_BIT), source);
     } else {
         // Set the shared memory to the provided pointer.
-        tokenizer.shared_memory = source;
+        tokenizer.source = source;
     }
 
     // Set source string starting pointer and copy it into the tokenizer.
     tokenizer.source_cursor = 0;
-    tokenizer.source = strcpy(tokenizer.shared_memory, source);
-
-    // Set the lexemes starting pointer.
-    tokenizer.lexemes_cursor = 0;
-    tokenizer.lexemes = &tokenizer.shared_memory[0];
 
     return tokenizer;
 };
 
-static inline void
-jsn_tokenizer_lexeme_pool_append_null(struct jsn_tokenizer *tokenizer) {
-    // Set the null terminator.
-    tokenizer->lexemes[tokenizer->lexemes_cursor] = '\0';
-    tokenizer->lexemes_cursor++;
+
+static inline void jsn_token_set_lexeme_start(struct jsn_token *token,
+                                              struct jsn_tokenizer *tokenizer) {
+    token->lexeme_start = &tokenizer->source[tokenizer->source_cursor];
 }
 
-static inline void
-jsn_tokenizer_lexeme_pool_append(struct jsn_tokenizer *tokenizer) {
-    // Add this char to the lexeme memory pool.
-    tokenizer->lexemes[tokenizer->lexemes_cursor] =
-        tokenizer->source[tokenizer->source_cursor];
-    tokenizer->lexemes_cursor++;
-    tokenizer->source_cursor++;
-}
-
-static inline void
-jsn_token_set_lexeme_pointer(struct jsn_token *token,
-                             struct jsn_tokenizer *tokenizer) {
-    token->lexeme = &tokenizer->lexemes[tokenizer->lexemes_cursor];
+static inline void jsn_token_set_lexeme_end(struct jsn_token *token,
+                                            struct jsn_tokenizer *tokenizer) {
+    token->lexeme_end = &tokenizer->source[tokenizer->source_cursor];
+    token->lexeme_length = token->lexeme_end - token->lexeme_start;
 }
 
 struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     // Is the cursor on a number.
     struct jsn_token token;
     token.type = JSN_TOC_UNKNOWN;
-    token.lexeme = NULL;
+    token.lexeme_start = NULL;
+    token.lexeme_end = NULL;
+    // token.lexeme = NULL;
 
     // Just skip spaces.
     if (isspace(tokenizer->source[tokenizer->source_cursor]) != 0) {
@@ -194,7 +177,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         tokenizer->source_cursor++;
 
         // Set lexeme starting location.
-        jsn_token_set_lexeme_pointer(&token, tokenizer);
+        jsn_token_set_lexeme_start(&token, tokenizer);
 
         // This will keep adding bytes until the end of string is reached.
         while (tokenizer->source[tokenizer->source_cursor] != '"') {
@@ -204,28 +187,28 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
             // Maybe handle this during output?, yes.
             // Handled escaping of backslashes.
             if (current_char == '\\') {
+
                 // Skip escape char.
                 if (next_char == '\\') {
                     tokenizer->source_cursor++;
-                    jsn_tokenizer_lexeme_pool_append(tokenizer);
+                    tokenizer->source_cursor++;
                     continue;
                 }
 
                 // Skip escape char.
                 if (next_char == '"') {
-                    // tokenizer->source_cursor++;
-                    jsn_tokenizer_lexeme_pool_append(tokenizer);
-                    jsn_tokenizer_lexeme_pool_append(tokenizer);
+                    tokenizer->source_cursor++;
+                    tokenizer->source_cursor++;
                     continue;
                 }
             }
 
             // Perform operation.
-            jsn_tokenizer_lexeme_pool_append(tokenizer);
+            tokenizer->source_cursor++;
         }
 
         // Set lexeme ending null terminator.
-        jsn_tokenizer_lexeme_pool_append_null(tokenizer);
+        jsn_token_set_lexeme_end(&token, tokenizer);
 
         // Move the past the ending quote.
         tokenizer->source_cursor++;
@@ -238,15 +221,15 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         token.type = JSN_TOC_NUMBER;
 
         // Set lexeme starting location.
-        jsn_token_set_lexeme_pointer(&token, tokenizer);
+        jsn_token_set_lexeme_start(&token, tokenizer);
 
         while (isdigit(tokenizer->source[tokenizer->source_cursor]) ||
                tokenizer->source[tokenizer->source_cursor] == '.') {
-            jsn_tokenizer_lexeme_pool_append(tokenizer);
+            tokenizer->source_cursor++;
         }
 
         // Set lexeme ending null terminator.
-        jsn_tokenizer_lexeme_pool_append_null(tokenizer);
+        jsn_token_set_lexeme_end(&token, tokenizer);
         return token;
     }
 
@@ -255,20 +238,24 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         token.type = JSN_TOC_NUMBER;
 
         // Set lexeme starting location.
-        jsn_token_set_lexeme_pointer(&token, tokenizer);
+        jsn_token_set_lexeme_start(&token, tokenizer);
 
-        // In case it's a negative number, just add the sign and move on.
-        jsn_tokenizer_lexeme_pool_append(tokenizer);
+        // Increment past the negative symbol.
+        tokenizer->source_cursor++;
 
         while (isdigit(tokenizer->source[tokenizer->source_cursor]) ||
                tokenizer->source[tokenizer->source_cursor] == '.') {
-            jsn_tokenizer_lexeme_pool_append(tokenizer);
+            tokenizer->source_cursor++;
         }
 
         // Set lexeme ending null terminator.
-        jsn_tokenizer_lexeme_pool_append_null(tokenizer);
+        jsn_token_set_lexeme_end(&token, tokenizer);
         return token;
     }
+
+    // TODO: We are repeating node here, it's not needed.
+
+    jsn_token_set_lexeme_start(&token, tokenizer);
 
     // Check all other general token types.
     switch (tokenizer->source[tokenizer->source_cursor]) {
@@ -309,11 +296,12 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         tokenizer->source_cursor++;
         break;
     default:
-        printf("The char is: %c\n",
-               tokenizer->source[tokenizer->source_cursor]);
+        printf("The char is: %c\n", tokenizer->source[tokenizer->source_cursor]);
         jsn_failure("Unknown token, found.");
         return token;
     }
+
+    jsn_token_set_lexeme_end(&token, tokenizer);
 
     return token;
 }
@@ -339,12 +327,34 @@ union jsn_node_value {
 };
 
 struct jsn_node {
-    char *key;
+    // char *key;
+    char key[JSN_NODE_KEY_SIZE];
     enum jsn_node_type type;
     union jsn_node_value value;
     unsigned int children_count;
     struct jsn_node **children;
 };
+
+/*
+ * TODO: Can we allocate 100 nodes at a time?
+ * TODO: How can we keep track of a chunk and allocate new chunks.
+ * TODO: This entire thing is now fucked, we can't free used memory.
+ */
+
+// Issue, deleting nodes will cause issues. Because some memory will be self
+// allocated and some will be group allocated.
+
+// Use a struct to, manage memory allocation.
+// struct jsn_node_allocator {};
+// Allocate 100 node slots.
+// Define the allocation chunk size: 200 | Constant.
+// Keep track of how many slots are available.
+// Keep track of how many slots are used.
+
+// So we start the parser, we allocate the memory slots for nodes.
+// We start parsing and add add nodes.
+// If the node slots are full, we allocate another chunk and continue.
+// realloc.
 
 struct jsn_node *jsn_create_node(enum jsn_node_type type) {
     // TODO: Can we pre-calculate the number of nodes required?
@@ -359,7 +369,6 @@ struct jsn_node *jsn_create_node(enum jsn_node_type type) {
     node->type = type;
     node->children_count = 0;
     node->children = NULL;
-    node->key = NULL;
 
     return node;
 }
@@ -400,11 +409,13 @@ void jsn_free_node_children(struct jsn_node *node) {
         if (node->children[i]->children_count == 0) {
             // If it's a string, free it.
             if (node->children[i]->type == JSN_NODE_STRING) {
-                free(node->children[i]->value.value_string);
+                // TODO: This will cause issues, only needed if not parsed.
+                // free(node->children[i]->value.value_string);
             }
             // If it has a key, free it.
             if (node->children[i]->key != NULL) {
-                free(node->children[i]->key);
+                // TODO: This will cause issues, only needed if not parsed.
+                // free(node->children[i]->key);
             }
         } else {
             // This node also has it's own children, so recursively continue.
@@ -428,13 +439,15 @@ void jsn_free_node_children(struct jsn_node *node) {
 void jsn_free_node_members(struct jsn_node *node, bool keep_key) {
     // If it's a string, free it.
     if (node->type == JSN_NODE_STRING) {
-        free(node->value.value_string);
+        // TODO: This will cause issues, only needed if not parsed
+        // free(node->value.value_string);
     }
 
     // If it has a key we also need to free that.
     if (node->key != NULL && keep_key == false) {
-        free(node->key);
-        node->key = NULL;
+        // TODO: This will cause issues, only needed if not parsed
+        // free(node->key);
+        // node->key = NULL;
     }
 
     // We also need to free it's children.
@@ -496,7 +509,15 @@ struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
 struct jsn_node *jsn_parse_string(struct jsn_tokenizer *tokenizer,
                                   struct jsn_token token) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
-    node->value.value_string = token.lexeme;
+
+    // Malloc and copy over the lexeme.
+    node->value.value_string = malloc((token.lexeme_length + 1) * CHAR_BIT);
+    strncpy(node->value.value_string, token.lexeme_start, token.lexeme_length);
+    //memcpy(node->value.value_string, token.lexeme_start, token.lexeme_length * CHAR_BIT);
+
+    // Set the string value's null terminator.
+    node->value.value_string[token.lexeme_length] = '\0';
+
     return node;
 }
 
@@ -510,16 +531,21 @@ struct jsn_node *jsn_parse_number(struct jsn_tokenizer *tokenizer,
                                   struct jsn_token token) {
     struct jsn_node *node;
 
+    // Check if the lexeme is a double.
+    char lexeme[token.lexeme_length + 1];
+    strncpy(lexeme, token.lexeme_start, token.lexeme_length);
+    lexeme[token.lexeme_length] = '\0';
+
     // We check if the token lexeme contains a period, then we know that it's a
     // double
-    if (strchr(token.lexeme, '.')) {
+    if (strchr(lexeme, '.')) {
         // Double
         node = jsn_create_node(JSN_NODE_DOUBLE);
-        node->value.value_double = strtod(token.lexeme, NULL);
+        node->value.value_double = strtod(lexeme, NULL);
     } else {
         // Integer
         node = jsn_create_node(JSN_NODE_INTEGER);
-        node->value.value_integer = atoi(token.lexeme);
+        node->value.value_integer = atoi(lexeme);
     }
 
     return node;
@@ -583,7 +609,16 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
         // Get the value and create the new child node (recursive call).
         struct jsn_token token_val = jsn_tokenizer_get_next_token(tokenizer);
         struct jsn_node *child_node = jsn_parse_value(tokenizer, token_val);
-        child_node->key = token_key.lexeme;
+
+        if ((token_key.lexeme_length + 1) >= JSN_NODE_KEY_SIZE) {
+            jsn_failure( "The JSON contains a key longer then the max key size.");
+        }
+
+        // Just set the null terminator.
+        child_node->key[token_key.lexeme_length] = '\0';
+
+        // Copy the token into the key.
+        strncpy(child_node->key, token_key.lexeme_start, token_key.lexeme_length);
 
         // Append the child node.
         jsn_append_node_child(node, child_node);
@@ -698,8 +733,6 @@ jsn_handle jsn_from_string(const char *src) {
 
     // Prime the tokenizer.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
-
-    // TODO: malloc all the space needed for the nodes in one chunk.
 
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
@@ -855,14 +888,14 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     }
 
     // Already has a key so we need to free it.
-    if (node->key != NULL) {
-        free(node->key);
-        node->key = NULL;
-    }
+    // if (node->key != NULL) {
+    //     free(node->key);
+    //     node->key = NULL;
+    // }
 
     // TODO: Handle allocation errors here.
     // Allocate for the nodes new key.
-    node->key = strcpy(malloc(strlen(key) * CHAR_BIT), key);
+    // node->key = strcpy(malloc(strlen(key) * CHAR_BIT), key);
 
     // Get the index of the child node with the same key if it exists.
     int matching_child_index = jsn_get_node_direct_child_index(handle, key);
@@ -890,10 +923,10 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
     }
 
     // Array children nodes, must not have keys. (Not Objects).
-    if (node->key != NULL) {
-        free(node->key);
-        node->key = NULL;
-    }
+    // if (node->key != NULL) {
+    //     free(node->key);
+    //     node->key = NULL;
+    // }
 
     // Append the node to the provided object.
     jsn_append_node_child(handle, node);
@@ -1020,15 +1053,17 @@ int main(void) {
     // jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
     // jsn_print(file_object);
 
-    // jsn_handle file_object =
-    //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/testing-1.json");
+    // jsn_benchmark_start();
+    // jsn_handle file_object = jsn_from_file(
+    //     "/home/vernon/Devenv/projects/json_c/data/testing-1.json");
+    // jsn_benchmark_end("Parsing of normally sized, JSON file.");
     // jsn_print(file_object);
 
     // jsn_handle member = jsn_get(team_members, 1, "Member 1");
 
     jsn_benchmark_start();
     jsn_handle file_object_1 =
-        jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
+    jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
 
     // // TODO: We should clear memory here.
@@ -1048,7 +1083,6 @@ int main(void) {
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_handle file_object_6 =
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-
     // jsn_free(file_object);
 
     // jsn_benchmark_start();
