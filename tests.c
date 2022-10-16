@@ -2,15 +2,12 @@
 #include <stdlib.h>
 #include "json.h"
 
-START_TEST (sample_test_here)
-{
-  ck_assert_int_eq(5, 5);
-}
-END_TEST
+/* INTERNAL TESTS:
+ * --------------------------------------------------------------------------*/
 
-START_TEST (sample_test_here_here)
+START_TEST (jsn_token_lexeme_append_test)
 {
-  ck_assert_int_eq(5, 5);
+   ck_assert_int_eq(5, 5);
 }
 END_TEST
 
@@ -23,8 +20,7 @@ Suite * sample_suite(void)
     /* Core test case */
     tc_core = tcase_create("Core");
 
-    tcase_add_test(tc_core, sample_test_here);
-    tcase_add_test(tc_core, sample_test_here_here);
+    tcase_add_test(tc_core, jsn_token_lexeme_append_test);
     suite_add_tcase(s, tc_core);
 
     return s;

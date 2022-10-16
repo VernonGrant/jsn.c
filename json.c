@@ -83,8 +83,6 @@ void jsn_benchmark_end(const char *log_prefix) {
  * --------------------------------------------------------------------------*/
 
 enum jsn_token_kind {
-    JSN_TOC_UNKNOWN,
-    JSN_TOC_NULL,
     JSN_TOC_INTEGER,
     JSN_TOC_DOUBLE,
     JSN_TOC_STRING,
@@ -94,7 +92,9 @@ enum jsn_token_kind {
     JSN_TOC_OBJECT_OPEN,
     JSN_TOC_OBJECT_CLOSE,
     JSN_TOC_COMMA,
-    JSN_TOC_COLON
+    JSN_TOC_COLON,
+    JSN_TOC_NULL,
+    JSN_TOC_UNKNOWN
 };
 
 struct jsn_token {
@@ -103,8 +103,6 @@ struct jsn_token {
     char *lexeme_end; // The ending address, becomes our null terminator.
     unsigned int lexeme_length;
 };
-
-// TODO: Tokenizer, lexemes should never be stored in memory.
 
 struct jsn_tokenizer {
     // Points to source starting point.
@@ -378,12 +376,12 @@ void jsn_free_node_children(struct jsn_node *node) {
             // If it's a string, free it.
             if (node->children[i]->type == JSN_NODE_STRING) {
                 // TODO: This will cause issues, only needed if not parsed.
-                // free(node->children[i]->value.value_string);
+                free(node->children[i]->value.value_string);
             }
             // If it has a key, free it.
             if (node->children[i]->key != NULL) {
                 // TODO: This will cause issues, only needed if not parsed.
-                // free(node->children[i]->key);
+                free(node->children[i]->key);
             }
         } else {
             // This node also has it's own children, so recursively continue.
@@ -408,14 +406,14 @@ void jsn_free_node_members(struct jsn_node *node, bool keep_key) {
     // If it's a string, free it.
     if (node->type == JSN_NODE_STRING) {
         // TODO: This will cause issues, only needed if not parsed
-        // free(node->value.value_string);
+        free(node->value.value_string);
     }
 
     // If it has a key we also need to free that.
     if (node->key != NULL && keep_key == false) {
         // TODO: This will cause issues, only needed if not parsed
-        // free(node->key);
-        // node->key = NULL;
+        free(node->key);
+        node->key = NULL;
     }
 
     // We also need to free it's children.
@@ -630,6 +628,7 @@ struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
     case JSN_TOC_ARRAY_CLOSE:
     case JSN_TOC_OBJECT_CLOSE:
     case JSN_TOC_COMMA:
+        return NULL;
     default:
         return NULL;
         jsn_failure("Undefined token found, 3.");
@@ -767,205 +766,209 @@ jsn_handle jsn_from_file(const char *file_path) {
         return NULL;
     }
 
+    // Free the tokenizer source
+    free(file_buffer);
+    tokenizer.source = NULL;
+
     // The node will be null anyway, so just return it.
     return root_node;
 }
 
-// jsn_handle jsn_create_object() {
-//     struct jsn_node *node = jsn_create_node(JSN_NODE_OBJECT);
-//     return node;
-// }
+jsn_handle jsn_create_object() {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_OBJECT);
+    return node;
+}
 
-// jsn_handle jsn_create_array() {
-//     struct jsn_node *node = jsn_create_node(JSN_NODE_ARRAY);
-//     return node;
-// }
+jsn_handle jsn_create_array() {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_ARRAY);
+    return node;
+}
 
-// jsn_handle jsn_create_integer(int value) {
-//     struct jsn_node *node = jsn_create_node(JSN_NODE_INTEGER);
-//     node->value.value_integer = value;
-//     return node;
-// }
+jsn_handle jsn_create_integer(int value) {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_INTEGER);
+    node->value.value_integer = value;
+    return node;
+}
 
-// jsn_handle jsn_create_double(double value) {
-//     struct jsn_node *node = jsn_create_node(JSN_NODE_DOUBLE);
-//     node->value.value_double = value;
-//     return node;
-// }
+jsn_handle jsn_create_double(double value) {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_DOUBLE);
+    node->value.value_double = value;
+    return node;
+}
 
-// jsn_handle jsn_create_boolean(bool value) {
-//     struct jsn_node *node = jsn_create_node(JSN_NODE_BOOLEAN);
-//     node->value.value_boolean = value;
-//     return node;
-// }
+jsn_handle jsn_create_boolean(bool value) {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_BOOLEAN);
+    node->value.value_boolean = value;
+    return node;
+}
 
-// jsn_handle jsn_create_string(const char *value) {
-//     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
+jsn_handle jsn_create_string(const char *value) {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
-//     // TODO: Handle allocation errors here.
-//     node->value.value_string = strcpy(malloc(strlen(value) * CHAR_BIT), value);
-//     return node;
-// }
+    // TODO: Handle allocation errors here.
+    node->value.value_string = strcpy(malloc(strlen(value) * CHAR_BIT), value);
+    return node;
+}
 
-// // TODO: Might return a null pointer, best way to handle that?
-// jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
-//     // Create our pointer for the selected node.
-//     struct jsn_node *selected = NULL;
+// TODO: Might return a null pointer, best way to handle that?
+jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
+    // Create our pointer for the selected node.
+    struct jsn_node *selected = NULL;
 
-//     // Find the node using the given keys.
-//     va_list args;
-//     va_start(args, arg_count);
-//     for (unsigned int i = 0; i < arg_count; i++) {
-//         // Will ignore nodes that equal NULL.
-//         if (i == 0) {
-//             selected = jsn_get_node_direct_child(handle, va_arg(args, char *));
-//         } else {
-//             selected =
-//                 jsn_get_node_direct_child(selected, va_arg(args, char *));
-//         }
-//     }
-//     va_end(args);
+    // Find the node using the given keys.
+    va_list args;
+    va_start(args, arg_count);
+    for (unsigned int i = 0; i < arg_count; i++) {
+        // Will ignore nodes that equal NULL.
+        if (i == 0) {
+            selected = jsn_get_node_direct_child(handle, va_arg(args, char *));
+        } else {
+            selected =
+                jsn_get_node_direct_child(selected, va_arg(args, char *));
+        }
+    }
+    va_end(args);
 
-//     return selected;
-// }
+    return selected;
+}
 
-// jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
-//     // Make sure were dealing with an array item.
-//     if (handle->type != JSN_NODE_ARRAY) {
-//         // TODO: Define better error messages.
-//         jsn_notice("The handle passed to jsn_get_array_item isn't an array.");
-//         return NULL;
-//     }
+jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
+    // Make sure were dealing with an array item.
+    if (handle->type != JSN_NODE_ARRAY) {
+        // TODO: Define better error messages.
+        jsn_notice("The handle passed to jsn_get_array_item isn't an array.");
+        return NULL;
+    }
 
-//     // Make sure the provided index is not larger then the array itself.
-//     if (handle->children_count > (index + 1)) {
-//         // TODO: Define better error messages.
-//         jsn_notice("The provided index is outside the arrays scope.");
-//         return NULL;
-//     }
+    // Make sure the provided index is not larger then the array itself.
+    if (handle->children_count > (index + 1)) {
+        // TODO: Define better error messages.
+        jsn_notice("The provided index is outside the arrays scope.");
+        return NULL;
+    }
 
-//     // Check to make sure the array does in fact have children.
-//     if (handle->children_count == 0) {
-//         // TODO: Define better error messages.
-//         jsn_notice("The array does not have any children.");
-//         return NULL;
-//     }
+    // Check to make sure the array does in fact have children.
+    if (handle->children_count == 0) {
+        // TODO: Define better error messages.
+        jsn_notice("The array does not have any children.");
+        return NULL;
+    }
 
-//     return handle->children[index];
-// }
+    return handle->children[index];
+}
 
-// /**
-//  * Will append a node to an node of object type. If the object already has a
-//  * node with the same key, it will get replaced. Keep in mind the replaced
-//  * node will be freed and set to NULL.
-//  */
-// void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
-//     // Make sure were dealing with an object handle type here.
-//     if (handle->type != JSN_NODE_OBJECT) {
-//         jsn_notice("The handle passed to jsn_object_set isn't an object.");
-//     }
+/**
+ * Will append a node to an node of object type. If the object already has a
+ * node with the same key, it will get replaced. Keep in mind the replaced
+ * node will be freed and set to NULL.
+ */
+void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
+    // Make sure were dealing with an object handle type here.
+    if (handle->type != JSN_NODE_OBJECT) {
+        jsn_notice("The handle passed to jsn_object_set isn't an object.");
+    }
 
-//     // Already has a key so we need to free it.
-//     // if (node->key != NULL) {
-//     //     free(node->key);
-//     //     node->key = NULL;
-//     // }
+    // Already has a key so we need to free it.
+    if (node->key != NULL) {
+        free(node->key);
+        node->key = NULL;
+    }
 
-//     // TODO: Handle allocation errors here.
-//     // Allocate for the nodes new key.
-//     // node->key = strcpy(malloc(strlen(key) * CHAR_BIT), key);
+    // TODO: Handle allocation errors here.
+    // Allocate for the nodes new key.
+    node->key = strcpy(malloc(strlen(key) * CHAR_BIT), key);
 
-//     // Get the index of the child node with the same key if it exists.
-//     int matching_child_index = jsn_get_node_direct_child_index(handle, key);
+    // Get the index of the child node with the same key if it exists.
+    int matching_child_index = jsn_get_node_direct_child_index(handle, key);
 
-//     // If a node with the same key exists, free and replace it.
-//     if (matching_child_index != -1) {
-//         // Keep a reference to the node that will be replaced.
-//         struct jsn_node *current_ref = handle->children[matching_child_index];
+    // If a node with the same key exists, free and replace it.
+    if (matching_child_index != -1) {
+        // Keep a reference to the node that will be replaced.
+        struct jsn_node *current_ref = handle->children[matching_child_index];
 
-//         // Replace the child node with the new one.
-//         handle->children[matching_child_index] = node;
+        // Replace the child node with the new one.
+        handle->children[matching_child_index] = node;
 
-//         // Free the old node.
-//         jsn_free_node(current_ref);
-//     } else {
-//         // We should append a new node.
-//         jsn_append_node_child(handle, node);
-//     }
-// }
+        // Free the old node.
+        jsn_free_node(current_ref);
+    } else {
+        // We should append a new node.
+        jsn_append_node_child(handle, node);
+    }
+}
 
-// void jsn_array_push(jsn_handle handle, jsn_handle node) {
-//     // Make sure were dealing with an array handle type here.
-//     if (handle->type != JSN_NODE_ARRAY) {
-//         jsn_notice("The handle passed to object append isn't an array.");
-//     }
+void jsn_array_push(jsn_handle handle, jsn_handle node) {
+    // Make sure were dealing with an array handle type here.
+    if (handle->type != JSN_NODE_ARRAY) {
+        jsn_notice("The handle passed to object append isn't an array.");
+    }
 
-//     // Array children nodes, must not have keys. (Not Objects).
-//     // if (node->key != NULL) {
-//     //     free(node->key);
-//     //     node->key = NULL;
-//     // }
+    // Array children nodes, must not have keys. (Not Objects).
+    if (node->key != NULL) {
+        free(node->key);
+        node->key = NULL;
+    }
 
-//     // Append the node to the provided object.
-//     jsn_append_node_child(handle, node);
-// }
+    // Append the node to the provided object.
+    jsn_append_node_child(handle, node);
+}
 
-// void jsn_set_as_object(jsn_handle handle) {
-//     // Free the node's members.
-//     jsn_free_node_members(handle, true);
+void jsn_set_as_object(jsn_handle handle) {
+    // Free the node's members.
+    jsn_free_node_members(handle, true);
 
-//     // Set the node's new type
-//     handle->type = JSN_NODE_OBJECT;
-// }
+    // Set the node's new type
+    handle->type = JSN_NODE_OBJECT;
+}
 
-// void jsn_set_as_array(jsn_handle handle) {
-//     // Free the node's members.
-//     jsn_free_node_members(handle, true);
+void jsn_set_as_array(jsn_handle handle) {
+    // Free the node's members.
+    jsn_free_node_members(handle, true);
 
-//     // Set the node's new type
-//     handle->type = JSN_NODE_ARRAY;
-// }
+    // Set the node's new type
+    handle->type = JSN_NODE_ARRAY;
+}
 
-// void jsn_set_as_integer(jsn_handle handle, int value) {
-//     // Free the node's members.
-//     jsn_free_node_members(handle, true);
+void jsn_set_as_integer(jsn_handle handle, int value) {
+    // Free the node's members.
+    jsn_free_node_members(handle, true);
 
-//     // Set the node's new type and value.
-//     handle->type = JSN_NODE_INTEGER;
-//     handle->value.value_integer = value;
-// }
+    // Set the node's new type and value.
+    handle->type = JSN_NODE_INTEGER;
+    handle->value.value_integer = value;
+}
 
-// void jsn_set_as_double(jsn_handle handle, double value) {
-//     // Free the node's members.
-//     jsn_free_node_members(handle, true);
+void jsn_set_as_double(jsn_handle handle, double value) {
+    // Free the node's members.
+    jsn_free_node_members(handle, true);
 
-//     // Set the node's new type and value.
-//     handle->type = JSN_NODE_DOUBLE;
-//     handle->value.value_double = value;
-// }
+    // Set the node's new type and value.
+    handle->type = JSN_NODE_DOUBLE;
+    handle->value.value_double = value;
+}
 
-// void jsn_set_as_boolean(jsn_handle handle, bool value) {
-//     // Free the node's members.
-//     jsn_free_node_members(handle, true);
+void jsn_set_as_boolean(jsn_handle handle, bool value) {
+    // Free the node's members.
+    jsn_free_node_members(handle, true);
 
-//     // Set the node's new type and value.
-//     handle->type = JSN_NODE_BOOLEAN;
-//     handle->value.value_boolean = value;
-// }
+    // Set the node's new type and value.
+    handle->type = JSN_NODE_BOOLEAN;
+    handle->value.value_boolean = value;
+}
 
-// void jsn_set_as_string(jsn_handle handle, const char *value) {
-//     // Free the node's members.
-//     jsn_free_node_members(handle, true);
+void jsn_set_as_string(jsn_handle handle, const char *value) {
+    // Free the node's members.
+    jsn_free_node_members(handle, true);
 
-//     // Set the node's new type and value.
-//     handle->type = JSN_NODE_STRING;
-//     unsigned int str_len = strlen(value) + 1;
+    // Set the node's new type and value.
+    handle->type = JSN_NODE_STRING;
+    unsigned int str_len = strlen(value) + 1;
 
-//     // TODO: Handle allocation errors here.
-//     handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
-// }
+    // TODO: Handle allocation errors here.
+    handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
+}
 
-// void jsn_free(jsn_handle handle) { jsn_free_node(handle); }
+void jsn_free(jsn_handle handle) { jsn_free_node(handle); }
 
 /* TESTING:
  * --------------------------------------------------------------------------*/
@@ -973,10 +976,10 @@ jsn_handle jsn_from_file(const char *file_path) {
 int main(void) {
     // Building a JSON tree from code.
     // jsn_handle root = jsn_create_object();
-
     // jsn_object_set(root, "Jackie", jsn_create_integer(39));
     // jsn_object_set(root, "Vernon", jsn_create_integer(32));
     // jsn_object_set(root, "Lucy", jsn_create_integer(80));
+    // jsn_print(root);
 
     // jsn_object_set(root, "JackieD", jsn_create_double(39));
     // jsn_object_set(root, "VernonD", jsn_create_double(32));
@@ -1025,10 +1028,16 @@ int main(void) {
     //     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
     // jsn_print(file_object);
 
+    // jsn_benchmark_start();
+    // jsn_handle file_object = jsn_from_file(
+    //     "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
+    // jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
+    // jsn_print(file_object);
+
     jsn_benchmark_start();
     jsn_handle file_object = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
-    jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
+        "/home/vernon/Devenv/projects/json_c/data/selectors.json");
+    jsn_benchmark_end("Parsing of CSS selectors JSON file.");
     // jsn_print(file_object);
 
     // jsn_benchmark_start();
