@@ -1,26 +1,27 @@
 GCC=gcc -ggdb -Wall
-GCC_PROD=gcc -O2 -s -DNDEBUG
+
 objects = jsn.o
+
+UTILS = ./utils/
 
 .PHONY: docs clean
 
-build: $(objects)
-	$(GCC) -o ./bin/jsn $(objects)
-	./bin/jsn
-
-build_prod: $(objects)
-	$(GCC_PROD) -o ./bin/jsn_prod $(objects)
-	./bin/jsn_prod
+test: jsn_test.o jsn.o debugging.o
+	$(GCC) -lcheck -o ./bin/jsn_test $^
+	./bin/jsn_test
 
 jsn.o: jsn.c jsn.h
 	$(GCC) -c $<
 
-test: jsn_test.o
-	$(GCC) -lcheck -o ./bin/jsn_test $<
-	./bin/jsn_test
-
 jsn_test.o: jsn_test.c
 	$(GCC) -lcheck -c $<
 
+debugging.o: $(UTILS)debugging.c $(UTILS)debugging.h
+	$(GCC) -c $<
+
+play: play.c jsn.o debugging.o
+	$(GCC) -lcheck -o ./bin/play $^
+	./bin/play
+
 clean:
-	rm $(objects)
+	rm -f $(objects)

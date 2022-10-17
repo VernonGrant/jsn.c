@@ -8,8 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/resource.h>
-#include <unistd.h>
+
+// TODO: Remove this in production.
+// Development use only.
+#include "utils/debugging.h"
 
 /* SETTINGS
  * --------------------------------------------------------------------------*/
@@ -23,60 +25,13 @@
  * The default value of 100, should be enough for 99% of the cases.
  */
 
+// TODO: Add some error handling CONSTANTS.
+
 /* UTILITIES
  * --------------------------------------------------------------------------*/
 
-void jsn_notice(const char *message) {
-    printf("NOTICE: %s\n", message);
-}
-
-void jsn_failure(const char *message) {
+void jsn_report_failure(const char *message) {
     printf("FAILURE: %s\n", message);
-    exit(1);
-}
-
-#include <time.h>
-
-static clock_t benchmark_clock;
-
-// TODO: Implement a better solution.
-void jsn_print_memory_usage(const char *message) {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    printf("%s: %ld MB!\n", message, (usage.ru_maxrss / 1024));
-}
-
-void jsn_benchmark_start() {
-    benchmark_clock = clock();
-    printf("Benchmarking:\n");
-}
-
-void jsn_benchmark_end(const char *log_prefix) {
-    double delta = (double)(clock() - benchmark_clock);
-    double elapsed_time = delta / CLOCKS_PER_SEC;
-
-    // Print out benchmark results.
-    printf("Benchmark Result:\n");
-    printf("---------------------------------------------------------------\n");
-    printf("It took %f, seconds!\n", elapsed_time);
-    printf("---------------------------------------------------------------\n");
-
-    // Write the result to a file.
-    FILE *f =
-        fopen("/home/vernon/Devenv/projects/json_c/benchmarking.txt", "a");
-
-    if (f == NULL) {
-        printf("Error opening file!\n");
-        exit(1);
-    }
-
-    // get the time.
-    time_t t = time(NULL);
-    struct tm tm = *localtime(&t);
-    fprintf(f, "%d-%02d-%02d %02d:%02d:%02d | ", tm.tm_year + 1900,
-            tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    fprintf(f, "%s | %f seconds.\n", log_prefix, elapsed_time);
-    fclose(f);
 }
 
 /* TOKENIZER
@@ -284,8 +239,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         tokenizer->source_cursor++;
         break;
     default:
-        printf("The char is: %c\n", current_source_char);
-        jsn_failure("Unknown token, found.");
+        jsn_report_failure("Unknown token found!");
         return token;
     }
 
@@ -323,15 +277,11 @@ struct jsn_node {
 };
 
 struct jsn_node *jsn_create_node(enum jsn_node_type type) {
-    // TODO: Can we pre-calculate the number of nodes required?
-    // TODO: Calling malloc for every single node is a bad idea.
-    // TODO: Is it possible to chunk these?
-
-    // TODO: Handle allocation errors here.
     // Let's allocate some memory on the heap.
     struct jsn_node *node = malloc(sizeof(struct jsn_node));
 
     // Set some sane defaults.
+    node->key = NULL;
     node->type = type;
     node->children_count = 0;
     node->children = NULL;
@@ -405,19 +355,18 @@ void jsn_free_node_children(struct jsn_node *node) {
 void jsn_free_node_members(struct jsn_node *node, bool keep_key) {
     // If it's a string, free it.
     if (node->type == JSN_NODE_STRING) {
-        // TODO: This will cause issues, only needed if not parsed
         free(node->value.value_string);
+        node->value.value_string = NULL;
     }
 
     // If it has a key we also need to free that.
     if (node->key != NULL && keep_key == false) {
-        // TODO: This will cause issues, only needed if not parsed
         free(node->key);
         node->key = NULL;
     }
 
     // We also need to free it's children.
-    if (node->children_count > 0) {
+    if (node->children_count != 0) {
         jsn_free_node_children(node);
     }
 }
@@ -578,13 +527,15 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
         }
 
         if (token_key.type != JSN_TOC_STRING) {
-            jsn_failure("Unknown token found, 1.");
+            jsn_report_failure("Unknown token found!");
+            return NULL;
         }
 
         // Get the colon.
         token_colon = jsn_tokenizer_get_next_token(tokenizer);
         if (token_colon.type != JSN_TOC_COLON) {
-            jsn_failure("Unknown token found, 2.");
+            jsn_report_failure("Unknown token found!");
+            return NULL;
         }
 
         // Get the value and create the new child node (recursive call).
@@ -610,6 +561,8 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
 
 struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
                                  struct jsn_token token) {
+
+    // TODO: Need to find a way to return NULL, no matter how deep the parsing go's.
     switch (token.type) {
     case JSN_TOC_OBJECT_OPEN:
         return jsn_parse_object(tokenizer, token);
@@ -630,11 +583,9 @@ struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
     case JSN_TOC_COMMA:
         return NULL;
     default:
+        jsn_report_failure("Unknown token found!");
         return NULL;
-        jsn_failure("Undefined token found, 3.");
     }
-
-    return NULL;
 }
 
 /* Debug:
@@ -720,16 +671,15 @@ jsn_handle jsn_from_string(const char *src) {
 jsn_handle jsn_from_file(const char *file_path) {
     // TODO: Note there's a file size limit here for fseek and fread.
     // TODO: Will require a more sophisticated solution.
-
     FILE *file_ptr;
 
     // Open the file.
     file_ptr = fopen(file_path, "r");
 
+    // TODO: We should handle the error
     // In case the file can't be read, report and return null.
     if (file_ptr == NULL) {
-        fclose(file_ptr);
-        jsn_notice("The file could not be opened.");
+        jsn_report_failure("The file could not be opened, incorrect path?");
         return NULL;
     }
 
@@ -752,17 +702,18 @@ jsn_handle jsn_from_file(const char *file_path) {
     // Create tokenizer from buffer.
     struct jsn_tokenizer tokenizer =
         jsn_tokenizer_init(file_buffer, file_size, false);
-    jsn_print_memory_usage("Memory used after tokenization init.");
+    // jsn_print_memory_usage("Memory used after tokenization init.");
 
     // Get the first token.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
-    jsn_print_memory_usage("Memory used after parsing.");
+    // jsn_print_memory_usage("Memory used after parsing.");
 
+    // If the parser returned NULL, return NULL.
     if (root_node == NULL) {
-        jsn_notice("The file could not be parsed, it might contain issues.");
+        jsn_report_failure("File could not be parsed!");
         return NULL;
     }
 
@@ -836,21 +787,21 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
     // Make sure were dealing with an array item.
     if (handle->type != JSN_NODE_ARRAY) {
         // TODO: Define better error messages.
-        jsn_notice("The handle passed to jsn_get_array_item isn't an array.");
+        jsn_report_failure("The handle passed to jsn_get_array_item isn't an array.");
         return NULL;
     }
 
     // Make sure the provided index is not larger then the array itself.
     if (handle->children_count > (index + 1)) {
         // TODO: Define better error messages.
-        jsn_notice("The provided index is outside the arrays scope.");
+        jsn_report_failure("The provided index is outside the arrays scope.");
         return NULL;
     }
 
     // Check to make sure the array does in fact have children.
     if (handle->children_count == 0) {
         // TODO: Define better error messages.
-        jsn_notice("The array does not have any children.");
+        jsn_report_failure("The array does not have any children.");
         return NULL;
     }
 
@@ -865,7 +816,7 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
 void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Make sure were dealing with an object handle type here.
     if (handle->type != JSN_NODE_OBJECT) {
-        jsn_notice("The handle passed to jsn_object_set isn't an object.");
+        jsn_report_failure("The handle passed to jsn_object_set isn't an object.");
     }
 
     // Already has a key so we need to free it.
@@ -900,7 +851,7 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
 void jsn_array_push(jsn_handle handle, jsn_handle node) {
     // Make sure were dealing with an array handle type here.
     if (handle->type != JSN_NODE_ARRAY) {
-        jsn_notice("The handle passed to object append isn't an array.");
+        jsn_report_failure("The handle passed to object append isn't an array.");
     }
 
     // Array children nodes, must not have keys. (Not Objects).
@@ -968,12 +919,14 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
     handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
 }
 
-void jsn_free(jsn_handle handle) { jsn_free_node(handle); }
+void jsn_free(jsn_handle handle) {
+    jsn_free_node(handle);
+}
 
 /* TESTING:
  * --------------------------------------------------------------------------*/
 
-int main(void) {
+// int main(void) {
     // Building a JSON tree from code.
     // jsn_handle root = jsn_create_object();
     // jsn_object_set(root, "Jackie", jsn_create_integer(39));
@@ -1034,10 +987,10 @@ int main(void) {
     // jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
     // jsn_print(file_object);
 
-    jsn_benchmark_start();
-    jsn_handle file_object = jsn_from_file(
-        "/home/vernon/Devenv/projects/json_c/data/selectors.json");
-    jsn_benchmark_end("Parsing of CSS selectors JSON file.");
+    // jsn_benchmark_start();
+    // jsn_handle file_object = jsn_from_file(
+    //     "/home/vernon/Devenv/projects/json_c/data/selectors.json");
+    // jsn_benchmark_end("Parsing of CSS selectors JSON file.");
     // jsn_print(file_object);
 
     // jsn_benchmark_start();
@@ -1101,5 +1054,5 @@ int main(void) {
     // jsn_print(handle_ages);
 
     // success
-    return 0;
-}
+    // return 0;
+// }
