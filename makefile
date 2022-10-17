@@ -1,6 +1,5 @@
 GCC=gcc -ggdb -Wall
 GCC_PROD=gcc -O2 -s -DNDEBUG
-
 objects = jsn.o
 
 .PHONY: docs clean

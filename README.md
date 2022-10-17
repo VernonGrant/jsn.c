@@ -1,6 +1,4 @@
-# json.h
-
-A lightweight JSON utility written in C.
+# JSN.c
 
 ## Usage
 
