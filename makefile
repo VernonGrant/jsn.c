@@ -1,33 +1,26 @@
 GCC=gcc -ggdb -Wall
 GCC_PROD=gcc -O2 -s -DNDEBUG
 
-objects = json.o
+objects = jsn.o
 
 .PHONY: docs clean
 
 build: $(objects)
-	$(GCC) -o ./bin/json $(objects)
-	./bin/json
+	$(GCC) -o ./bin/jsn $(objects)
+	./bin/jsn
 
 build_prod: $(objects)
-	$(GCC_PROD) -o ./bin/json_prod $(objects)
-	./bin/json_prod
+	$(GCC_PROD) -o ./bin/jsn_prod $(objects)
+	./bin/jsn_prod
 
-json.o: json.c json.h
+jsn.o: jsn.c jsn.h
 	$(GCC) -c $<
 
-json.e: json.c
-	gcc -E $<
+test: jsn_test.o
+	$(GCC) -lcheck -o ./bin/jsn_test $<
+	./bin/jsn_test
 
-docs:
-	rm -R ./docs/
-	doxygen doxy
-
-test: tests.o
-	$(GCC) -lcheck -o ./bin/test $<
-	./bin/test
-
-tests.o: tests.c
+jsn_test.o: jsn_test.c
 	$(GCC) -lcheck -c $<
 
 clean:

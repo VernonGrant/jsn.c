@@ -1,6 +1,6 @@
 #include <check.h>
 #include <stdlib.h>
-#include "json.h"
+#include "jsn.h"
 
 /* INTERNAL TESTS:
  * --------------------------------------------------------------------------*/
