@@ -4,7 +4,7 @@ objects = jsn.o
 
 UTILS = ./utils/
 
-.PHONY: docs clean
+.PHONY: docs clean serve
 
 test: jsn_test.o jsn.o debugging.o
 	$(GCC) -lcheck -o ./bin/jsn_test $^
@@ -25,3 +25,6 @@ play: play.c jsn.o debugging.o
 
 clean:
 	rm -f $(objects)
+
+serve:
+	npx markserv ./README.md

@@ -52,6 +52,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+# Node
+node_modules/
+
 # Codelite - Debugger
 .codelite/
 json_c.workspace

@@ -90,7 +90,6 @@ jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
     return tokenizer;
 };
 
-
 static inline void jsn_token_set_lexeme_start(struct jsn_token *token,
                                               struct jsn_tokenizer *tokenizer) {
     token->lexeme_start = &tokenizer->source[tokenizer->source_cursor];
@@ -702,14 +701,14 @@ jsn_handle jsn_from_file(const char *file_path) {
     // Create tokenizer from buffer.
     struct jsn_tokenizer tokenizer =
         jsn_tokenizer_init(file_buffer, file_size, false);
-    // jsn_print_memory_usage("Memory used after tokenization init.");
+    jsn_print_memory_usage("Memory used after tokenization init.");
 
     // Get the first token.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
-    // jsn_print_memory_usage("Memory used after parsing.");
+    jsn_print_memory_usage("Memory used after parsing.");
 
     // If the parser returned NULL, return NULL.
     if (root_node == NULL) {
@@ -774,8 +773,7 @@ jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
         if (i == 0) {
             selected = jsn_get_node_direct_child(handle, va_arg(args, char *));
         } else {
-            selected =
-                jsn_get_node_direct_child(selected, va_arg(args, char *));
+            selected = jsn_get_node_direct_child(selected, va_arg(args, char *));
         }
     }
     va_end(args);
@@ -827,7 +825,8 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
 
     // TODO: Handle allocation errors here.
     // Allocate for the nodes new key.
-    node->key = strcpy(malloc(strlen(key) * CHAR_BIT), key);
+    node->key = malloc(strlen(key) * CHAR_BIT);
+    strcpy(node->key, key);
 
     // Get the index of the child node with the same key if it exists.
     int matching_child_index = jsn_get_node_direct_child_index(handle, key);
@@ -862,6 +861,22 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
 
     // Append the node to the provided object.
     jsn_append_node_child(handle, node);
+}
+
+int jsn_get_value_int(jsn_handle handle) {
+    return handle->value.value_integer;
+}
+
+double jsn_get_value_double(jsn_handle handle) {
+    return handle->value.value_double;
+}
+
+bool jsn_get_value_bool(jsn_handle handle) {
+    return handle->value.value_boolean;
+}
+
+char *jsn_get_value_string(jsn_handle handle) {
+    return handle->value.value_string;
 }
 
 void jsn_set_as_object(jsn_handle handle) {
