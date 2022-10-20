@@ -4,7 +4,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "debugging.h"
+#include "benchmark.h"
 
 static clock_t benchmark_clock;
 
@@ -30,7 +30,7 @@ void jsn_benchmark_end(const char *log_prefix) {
     printf("---------------------------------------------------------------\n");
 
     // Write the result to a file.
-    FILE *f = fopen("../benchmarking.txt", "a");
+    FILE *f = fopen("benchmark-results.txt", "a");
 
     if (f == NULL) {
         printf("Error opening file!\n");

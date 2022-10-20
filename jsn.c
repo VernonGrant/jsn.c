@@ -1,31 +1,10 @@
-#include "jsn.h"
-
 #include <assert.h>
 #include <ctype.h>
-#include <limits.h>
 #include <stdarg.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// TODO: Remove this in production.
-// Development use only.
-#include "utils/debugging.h"
-
-/* SETTINGS
- * --------------------------------------------------------------------------*/
-
-/**
- * For performance reasons we allocate a single pool of memory where all token
- * lexeme's are stored. The lexeme pool excess defines an additional buffer,
- * that insure that there's more then enough memory available for all null
- * terminators.
- *
- * The default value of 100, should be enough for 99% of the cases.
- */
-
-// TODO: Add some error handling CONSTANTS.
+#include "jsn.h"
 
 /* UTILITIES
  * --------------------------------------------------------------------------*/
@@ -78,7 +57,7 @@ jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
 
     if (make_copy) {
         // Allocate the memory for source.
-        tokenizer.source = strcpy(malloc(source_length * CHAR_BIT), source);
+        tokenizer.source = strcpy(malloc(source_length * sizeof(char)), source);
     } else {
         // Set the shared memory to the provided pointer.
         tokenizer.source = source;
@@ -195,7 +174,6 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         return token;
     }
 
-    // TODO: We are repeating node here, it's not needed.
     jsn_token_set_lexeme_start(&token, tokenizer);
 
     // TODO: Performance improvements possible here.
@@ -291,11 +269,9 @@ struct jsn_node *jsn_create_node(enum jsn_node_type type) {
 }
 
 void jsn_append_node_child(struct jsn_node *parent, struct jsn_node *child) {
-    // TODO: Why does this almost not even, effect performance?
     // Increment children count.
     parent->children_count++;
 
-    // TODO: Can you call realloc on a null pointer?
     // Reallocate memory.
     unsigned int size = (sizeof(struct jsn_node *)) * (parent->children_count);
     parent->children = realloc(parent->children, size);
@@ -309,11 +285,6 @@ void jsn_append_node_child(struct jsn_node *parent, struct jsn_node *child) {
  * to 0.
  */
 void jsn_free_node_children(struct jsn_node *node) {
-    // They might have strings.
-    // They might have keys.
-    // Both of these need to be freed.
-    // We only want to free it's children, not the node itself.
-
     // When the node has no children.
     if (node->children_count == 0) {
         return;
@@ -376,7 +347,6 @@ void jsn_free_node(struct jsn_node *node) {
     // Free all it's members.
     jsn_free_node_members(node, false);
 
-    // TODO: Not sure about setting it to null.
     // And free the node itself.
     free(node);
     node = NULL;
@@ -478,7 +448,7 @@ struct jsn_node *jsn_parse_string(struct jsn_tokenizer *tokenizer,
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
     // Malloc and copy over the lexeme.
-    node->value.value_string = malloc((token.lexeme_length + 1) * CHAR_BIT);
+    node->value.value_string = malloc((token.lexeme_length + 1) * sizeof(char));
     strncpy(node->value.value_string, token.lexeme_start, token.lexeme_length);
     node->value.value_string[token.lexeme_length] = '\0';
 
@@ -594,7 +564,7 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
         child_node = jsn_parse_value(tokenizer, token_val);
 
         // Dynamically allocated key.
-        child_node->key = malloc((token_key.lexeme_length + 1) * CHAR_BIT);
+        child_node->key = malloc((token_key.lexeme_length + 1) * sizeof(char));
         strncpy(child_node->key, token_key.lexeme_start,
                 token_key.lexeme_length);
         child_node->key[token_key.lexeme_length] = '\0';
@@ -770,7 +740,7 @@ jsn_handle jsn_from_file(const char *file_path) {
 
     // TODO: Handle allocation errors here.
     // Allocate and copy file source into a temp buffer.
-    char *file_buffer = malloc(file_size * CHAR_BIT);
+    char *file_buffer = malloc(file_size * sizeof(char));
     fread(file_buffer, file_size, 1, file_ptr);
     file_buffer[file_size - 1] = '\0';
 
@@ -780,14 +750,12 @@ jsn_handle jsn_from_file(const char *file_path) {
     // Create tokenizer from buffer.
     struct jsn_tokenizer tokenizer =
         jsn_tokenizer_init(file_buffer, file_size, false);
-    jsn_print_memory_usage("Memory used after tokenization init.");
 
     // Get the first token.
     struct jsn_token token = jsn_tokenizer_get_next_token(&tokenizer);
 
     // Start parsing, recursively.
     jsn_handle root_node = jsn_parse_value(&tokenizer, token);
-    jsn_print_memory_usage("Memory used after parsing.");
 
     // If the parser returned NULL, return NULL.
     if (root_node == NULL) {
@@ -848,7 +816,7 @@ jsn_handle jsn_create_string(const char *value) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
     // TODO: Handle allocation errors here.
-    node->value.value_string = strcpy(malloc(strlen(value) * CHAR_BIT), value);
+    node->value.value_string = strcpy(malloc(strlen(value) * sizeof(char)), value);
     return node;
 }
 
@@ -925,7 +893,7 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
 
     // TODO: Handle allocation errors here.
     // Allocate for the nodes new key.
-    node->key = malloc(strlen(key) * CHAR_BIT);
+    node->key = malloc(strlen(key) * sizeof(char));
     strcpy(node->key, key);
 
     // Get the index of the child node with the same key if it exists.
@@ -950,7 +918,8 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
 void jsn_array_push(jsn_handle handle, jsn_handle node) {
     // Make sure were dealing with an array handle type here.
     if (handle->type != JSN_NODE_ARRAY) {
-        jsn_report_failure("The handle passed to object append isn't an array.");
+        jsn_report_failure(
+            "The handle passed to object append isn't an array.");
     }
 
     // Array children nodes, must not have keys. (Not Objects).
@@ -963,9 +932,7 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
     jsn_append_node_child(handle, node);
 }
 
-int jsn_get_value_int(jsn_handle handle) {
-    return handle->value.value_integer;
-}
+int jsn_get_value_int(jsn_handle handle) { return handle->value.value_integer; }
 
 double jsn_get_value_double(jsn_handle handle) {
     return handle->value.value_double;
@@ -1031,9 +998,7 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
     unsigned int str_len = strlen(value) + 1;
 
     // TODO: Handle allocation errors here.
-    handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
+    handle->value.value_string = strcpy(malloc(str_len * sizeof(char)), value);
 }
 
-void jsn_free(jsn_handle handle) {
-    jsn_free_node(handle);
-}
+void jsn_free(jsn_handle handle) { jsn_free_node(handle); }

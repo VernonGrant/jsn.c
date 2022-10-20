@@ -6,12 +6,11 @@
 /* CONSTANTS:
  * --------------------------------------------------------------------------*/
 
-#define JSN_TESTING_DATA_FILE_COUNT 4
+#define JSN_TESTING_DATA_FILE_COUNT 5
 #define JSN_TESTING_DATA_FILES_PATHS                                      \
-    (char[4][50]) {                                                       \
+    (char[5][50]) {                                                       \
         "./data/data_1.json", "./data/data_2.json", "./data/data_3.json", \
-        "./data/data_4.json"                                              \
-    }
+        "./data/data_4.json", "./data/data_5.json"}
 
 #define JSN_TESTING_BAD_DATA_FILE_COUNT 1
 #define JSN_TESTING_BAD_DATA_FILES_PATHS                                  \
