@@ -611,6 +611,7 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
     return node;
 }
 
+// TODO: Issue here.
 struct jsn_node *jsn_parse_value(struct jsn_tokenizer *tokenizer,
                                  struct jsn_token token) {
 
@@ -974,7 +975,7 @@ bool jsn_get_value_bool(jsn_handle handle) {
     return handle->value.value_boolean;
 }
 
-char *jsn_get_value_string(jsn_handle handle) {
+const char *jsn_get_value_string(jsn_handle handle) {
     return handle->value.value_string;
 }
 
@@ -1036,139 +1037,3 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
 void jsn_free(jsn_handle handle) {
     jsn_free_node(handle);
 }
-
-/* TESTING:
- * --------------------------------------------------------------------------*/
-
-// int main(void) {
-// Building a JSON tree from code.
-// jsn_handle root = jsn_create_object();
-// jsn_object_set(root, "Jackie", jsn_create_integer(39));
-// jsn_object_set(root, "Vernon", jsn_create_integer(32));
-// jsn_object_set(root, "Lucy", jsn_create_integer(80));
-// jsn_print(root);
-
-// jsn_object_set(root, "JackieD", jsn_create_double(39));
-// jsn_object_set(root, "VernonD", jsn_create_double(32));
-// jsn_object_set(root, "LucyD", jsn_create_double(80));
-
-// jsn_object_set(root, "JackieB", jsn_create_boolean(true));
-// jsn_object_set(root, "VernonB", jsn_create_boolean(false));
-// jsn_object_set(root, "LucyB", jsn_create_boolean(false));
-
-// jsn_object_set(root, "JackieS", jsn_create_string("Hello, Jackie!"));
-// jsn_object_set(root, "VernonS", jsn_create_string("Hello, Vernon!"));
-// jsn_object_set(root, "LucyS", jsn_create_string("Hello, Lucy!"));
-
-// jsn_handle people = jsn_create_array();
-// jsn_array_push(people, jsn_create_integer(39));
-// jsn_array_push(people, jsn_create_double(39));
-// jsn_array_push(people, jsn_create_boolean(false));
-// jsn_array_push(people, jsn_create_string("Hello String!"));
-// jsn_object_set(root, "MyArray", people);
-// jsn_print(people);
-
-// Getting and setting the values of nodes and or changing their types.
-// jsn_handle team_members = jsn_create_object();
-// // When you try to append an existing node, it will get replaced.
-// jsn_object_set(team_members, "Member 1", jsn_create_integer(300));
-// jsn_object_set(team_members, "Member 2", jsn_create_integer(300));
-// jsn_object_set(team_members, "Member 3", jsn_create_integer(200));
-// jsn_print(team_members);
-
-// jsn_handle member = jsn_get(team_members, 1, "Member 1");
-// jsn_print(member);
-// jsn_set_as_integer(member, 5000);
-// jsn_print(member);
-// jsn_set_as_double(member, 5000);
-// jsn_print(member);
-// jsn_set_as_boolean(member, false);
-// jsn_print(member);
-// jsn_set_as_string(member, "My String Value");
-// jsn_print(member);
-// jsn_set_as_object(member);
-// jsn_print(member);
-// jsn_set_as_array(member);
-// jsn_print(member);
-
-// jsn_handle file_object =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_print(file_object);
-
-// jsn_benchmark_start();
-// jsn_handle file_object = jsn_from_file(
-//     "/home/vernon/Devenv/projects/json_c/data/testing-large.json");
-// jsn_benchmark_end("Parsing of 25MB, testing large JSON file.");
-// jsn_print(file_object);
-
-// jsn_benchmark_start();
-// jsn_handle file_object = jsn_from_file(
-//     "/home/vernon/Devenv/projects/json_c/data/selectors.json");
-// jsn_benchmark_end("Parsing of CSS selectors JSON file.");
-// jsn_print(file_object);
-
-// jsn_benchmark_start();
-// jsn_handle file_object = jsn_from_file(
-//     "/home/vernon/Devenv/projects/json_c/data/testing-1.json");
-// jsn_benchmark_end("Parsing of normally sized, JSON file.");
-// jsn_print(file_object);
-
-// jsn_handle member = jsn_get(team_members, 1, "Member 1");
-
-// printf("The size of a single jsn_node is: %lu, bytes!\n", sizeof( char *));
-// printf("The size of a single jsn_node is: %lu, bytes!\n", sizeof( enum
-// jsn_node_type)); printf("The size of a single jsn_node is: %lu, bytes!\n",
-// sizeof( union jsn_node_value)); printf("The size of a single jsn_node is:
-// %lu, bytes!\n", sizeof( unsigned int )); printf("The size of a single
-// jsn_node is: %lu, bytes!\n", sizeof( struct jsn_node *));
-
-// jsn_benchmark_start();
-// jsn_handle file_object_1 =
-// jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_benchmark_end("Parsing of 180MB, city lots JSON file.");
-
-// // TODO: We should clear memory here.
-// jsn_handle file_object_2 =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_benchmark_end("Parsing of 2 * 180MB (360MB), city lots JSON file.");
-
-// jsn_benchmark_start();
-// jsn_handle file_object_2 =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_handle file_object_3 =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_handle file_object_4 =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_benchmark_end("Parsing of 3 * 180MB (540MB), city lots JSON file.");
-// jsn_handle file_object_5 =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_handle file_object_6 =
-//     jsn_from_file("/home/vernon/Devenv/projects/json_c/data/citylots.json");
-// jsn_free(file_object);
-
-// jsn_benchmark_start();
-// jsn_handle file_object_alt = jsn_from_file(
-//     "/home/vernon/Devenv/projects/json_c/data/latestblock.json");
-// jsn_benchmark_end("Parsing of long numbers only, small file JSON file.");
-
-// jsn_handle file_object_alt_alt = jsn_from_file(
-//     "/home/vernon/Devenv/projects/json_c/data/search.json");
-
-// jsn_handle file_object = jsn_from_file(
-// "/home/vernon/Devenv/projects/json_c/data/testing-1.json");
-// jsn_print(file_object);
-
-// Setting node values and changing their types.
-// jsn_handle handle_ages = jsn_from_string("{ \
-    //     \"jackie\" : 39, \
-    //     \"vernon\" : 32, \
-    //     \"jhon\" : 32.5, \
-    //     \"lucy\" : true, \
-    //     \"Brandon\" : false, \
-    //     \"Brandon Alt\" : \"Hello This is my string\" \
-    // }");
-// jsn_print(handle_ages);
-
-// success
-// return 0;
-// }

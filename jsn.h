@@ -13,7 +13,7 @@
 typedef struct jsn_node *jsn_handle;
 
 
-/* STRUCTURE READING, WRITING AND OUTPUTTING FUNCTIONS
+/* PARSING, SAVING AND OUTPUTTING FUNCTIONS
  * ------------------------------------------------------------------------- */
 
 /**
@@ -35,7 +35,7 @@ jsn_handle jsn_from_file(const char *file_path);
 void jsn_to_file(jsn_handle handle, const char *file_path);
 
 
-/* STRUCTURE CREATION FUNCTIONS
+/* TREE CREATION AND DELETION FUNCTIONS
  * ------------------------------------------------------------------------- */
 
 /**
@@ -85,7 +85,13 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node);
  */
 void jsn_array_push(jsn_handle handle, jsn_handle node);
 
-/* STRUCTURE MANIPULATION FUNCTIONS
+/**
+ * Will recursively free the handle (node). Please note, that you should only
+ * every free the root node.
+ */
+void jsn_free(jsn_handle handle);
+
+/* GETTING AND SETTING FUNCTIONS
  * ------------------------------------------------------------------------- */
 
 /**
@@ -117,7 +123,7 @@ double jsn_get_value_double(jsn_handle handle);
 /**
  * Get a nodes string value.
  */
-char *jsn_get_value_string(jsn_handle handle);
+const char *jsn_get_value_string(jsn_handle handle);
 
 /**
  * Set's the given handle (node) as an object. Will mutate it's type if the
@@ -154,11 +160,5 @@ void jsn_set_as_boolean(jsn_handle handle, bool value);
  * handle is not of an string type.
  */
 void jsn_set_as_string(jsn_handle handle, const char *value);
-
-/**
- * Will recursively free the handle (node). Please note, that you should only
- * every free the root node.
- */
-void jsn_free(jsn_handle handle);
 
 #endif
