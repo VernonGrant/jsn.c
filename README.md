@@ -3,6 +3,8 @@
 **JSN.c** is a simple utility intended to be used for reading and manipulating
 small JSON configuration files.
 
+## Work in progress!
+
 ## Usage
 
 Here's a few examples of how to use the utility.
@@ -230,4 +232,3 @@ The results of the above code.
 - `void jsn_set_as_string(jsn_handle handle, const char *value)`
     - Set's the given handle (node) as an string. Will change it's type if the
       handle is not of an string type.
-
