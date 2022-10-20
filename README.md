@@ -1,13 +1,11 @@
 # JSN.c
 
-**JSN.c** is intended to be used to read and manipulate small JSON configuration
-files. Instead of focusing on memory usage and performance, the focus is to
-create an easy to use interface.
+**JSN.c** is a simple utility intended to be used for reading and manipulating
+small JSON configuration files.
 
 ## Usage
 
-The following provides quick guides to help you get started. You can take a
-look at the entire public interface here.
+Here's a few examples of how to use the utility.
 
 ### Reading a value from JSON file
 
@@ -72,7 +70,7 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### Creating a structure and writing it to a file
+### Creating a JSON object via code and writing it to a file
 
 ```C
 #include "jsn.h"
@@ -136,9 +134,9 @@ The results of the above code.
 }
 ```
 
-## Interface
+## Header declarations
 
-### Parsing, saving and outputting functions
+### Parsing, printing and saving
 
 - `void jsn_print(jsn_handle handle)`
     - Prints the JSON of the provided handle (node).
@@ -152,7 +150,7 @@ The results of the above code.
     - Will write the JSON of the given handle (node) to a file specified by the
       given path.
 
-### Tree creation and deletion functions
+### Tree creation and deletion
 
 - `jsn_handle jsn_create_object()`
     - Creates an empty object node and return's it's handle.
@@ -188,7 +186,7 @@ The results of the above code.
     - Will recursively free the handle (node). Please note, that you should
       only every free the root node.
 
-### Getting and setting functions
+### Getting and setting
 
 - `jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...)`
     - Returns a handle to an objects child node that matching the provided key
@@ -232,3 +230,4 @@ The results of the above code.
 - `void jsn_set_as_string(jsn_handle handle, const char *value)`
     - Set's the given handle (node) as an string. Will change it's type if the
       handle is not of an string type.
+
