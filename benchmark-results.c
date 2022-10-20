@@ -10,21 +10,28 @@ int main(int argc, char *argv[]) {
     // Create the main object.
     jsn_print_memory_usage("Memory at the start:");
 
-    // Benchmark parsing of large file.
+    // Canada benchmark.
     jsn_benchmark_start();
-    jsn_handle root_25 = jsn_from_file("./benchmark/25mb.json");
-    jsn_benchmark_end("Parsing 25MB JSON file");
+    jsn_handle canada = jsn_from_file("./benchmark/canada.json");
+    jsn_benchmark_end("Parsing of canada.json      ");
 
+    // Citm Catelog benchmark.
     jsn_benchmark_start();
-    jsn_handle root_20 = jsn_from_file("./benchmark/20mb.json");
-    jsn_benchmark_end("Parsing 20MB JSON file");
+    jsn_handle citm = jsn_from_file("./benchmark/citm_catalog.json");
+    jsn_benchmark_end("Parsing of citm_catalog.json");
+
+    // Twitter benchmark.
+    jsn_benchmark_start();
+    jsn_handle twitter = jsn_from_file("./benchmark/twitter.json");
+    jsn_benchmark_end("Parsing of twitter.json     ");
 
     // Check memory usage.
     jsn_print_memory_usage("Memory at the end:");
 
     // free.
-    jsn_free(root_25);
-    jsn_free(root_20);
+    jsn_free(canada);
+    jsn_free(citm);
+    jsn_free(twitter);
 
     return 0;
 }

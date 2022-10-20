@@ -61,4 +61,3 @@ json_c.workspace
 
 # Project
 data/data_written.json
-benchmark/*.json
