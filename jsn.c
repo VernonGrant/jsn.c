@@ -851,6 +851,11 @@ jsn_handle jsn_create_string(const char *value) {
     return node;
 }
 
+jsn_handle jsn_create_null() {
+    struct jsn_node *node = jsn_create_node(JSN_NODE_NULL);
+    return node;
+}
+
 // TODO: Might return a null pointer, best way to handle that?
 jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
     // Create our pointer for the selected node.
@@ -944,8 +949,7 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
 void jsn_array_push(jsn_handle handle, jsn_handle node) {
     // Make sure were dealing with an array handle type here.
     if (handle->type != JSN_NODE_ARRAY) {
-        jsn_report_failure(
-            "The handle passed to object append isn't an array.");
+        jsn_report_failure("The handle passed to object append isn't an array.");
     }
 
     // Array children nodes, must not have keys. (Not Objects).
@@ -958,7 +962,9 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
     jsn_append_node_child(handle, node);
 }
 
-int jsn_get_value_int(jsn_handle handle) { return handle->value.value_integer; }
+int jsn_get_value_int(jsn_handle handle) {
+    return handle->value.value_integer;
+}
 
 double jsn_get_value_double(jsn_handle handle) {
     return handle->value.value_double;
@@ -1027,7 +1033,9 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
     handle->value.value_string = strcpy(malloc(str_len * CHAR_BIT), value);
 }
 
-void jsn_free(jsn_handle handle) { jsn_free_node(handle); }
+void jsn_free(jsn_handle handle) {
+    jsn_free_node(handle);
+}
 
 /* TESTING:
  * --------------------------------------------------------------------------*/

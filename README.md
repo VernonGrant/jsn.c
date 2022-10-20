@@ -9,17 +9,7 @@ create an easy to use interface.
 The following provides quick guides to help you get started. You can take a
 look at the entire public interface here.
 
-- [Reading data from a JSON file](#reading-data-from-a-json-file)
-- [Changing a JSON file's data](#changing-a-json-files-data)
-
-
-### Reading data from a JSON file
-
-JSN.c consists of two files, the `jsn.c` and `jsn.h`. You can simply just
-include these into your projects and reference the header file where needed.
-
-In the blow example we parse a configuration file, get the node matching the
-`version` key and then extract the node's value of type double.
+### Reading a value from JSON file
 
 ```C
 #include <stdio.h>
@@ -52,9 +42,7 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### Changing a JSON file's data
-
-Parse a file and update a tree's node and update the file once done.
+### Reading and updating a JSON file
 
 ```C
 #include <stdlib.h>
@@ -84,6 +72,67 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-## Interface Overview
+### Creating a structure and writing it to a file
 
+```C
+#include "jsn.h"
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    // Create the main object.
+    jsn_handle main_object = jsn_create_object();
+
+    // Set some root properties.
+    jsn_object_set(main_object, "version", jsn_create_double(1.0));
+    jsn_object_set(main_object, "name", jsn_create_string("Project Name"));
+
+    // Create a array node and add some children.
+    jsn_handle inner_array = jsn_create_array();
+    for (unsigned int i = 0; i < 10; i++) {
+        jsn_array_push(inner_array, jsn_create_integer(i));
+    }
+
+    // Append the array to the main object.
+    jsn_object_set(main_object, "numbers-array", inner_array);
+
+    // Create a new object.
+    jsn_handle inner_object = jsn_create_object();
+
+    // Set some properties on the above inner object.
+    jsn_object_set(inner_object, "release", jsn_create_boolean(true));
+    jsn_object_set(inner_object, "dependencies", jsn_create_boolean(false));
+    jsn_object_set(inner_object, "children", jsn_create_null());
+
+    // Append the inner object to the main object.
+    jsn_object_set(main_object, "inner-object", inner_object);
+
+    // Write the main object to a file.
+    jsn_to_file(main_object, "./data/data_written.json");
+
+    // Print out the JSON.
+    jsn_print(main_object);
+
+    // We're done, so let's free the used memory. We only need to free the
+    // main object, as all other node's have already been appended to the main
+    // object, they will all get freed recursively.
+    jsn_free(main_object);
+
+    return 0;
+}
+```
+
+The results of the above code.
+
+```JSON
+{
+	"version": 1.000000,
+	"name": "Project Name",
+	"numbers-array": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+	"inner-object": {
+		"release": true,
+		"dependencies": false,
+		"children": null
+	}
+}
+```
 
