@@ -13,17 +13,17 @@ int main(int argc, char *argv[]) {
     // Canada benchmark.
     jsn_benchmark_start();
     jsn_handle canada = jsn_from_file("./benchmark/canada.json");
-    jsn_benchmark_end("Parsing of canada.json      ");
+    jsn_benchmark_end("Parsing of ./benchmark/canada.json      ");
 
     // Citm Catelog benchmark.
     jsn_benchmark_start();
     jsn_handle citm = jsn_from_file("./benchmark/citm_catalog.json");
-    jsn_benchmark_end("Parsing of citm_catalog.json");
+    jsn_benchmark_end("Parsing of ./benchmark/citm_catalog.json");
 
     // Twitter benchmark.
     jsn_benchmark_start();
     jsn_handle twitter = jsn_from_file("./benchmark/twitter.json");
-    jsn_benchmark_end("Parsing of twitter.json     ");
+    jsn_benchmark_end("Parsing of ./benchmark/twitter.json     ");
 
     // Check memory usage.
     jsn_print_memory_usage("Memory at the end:");
