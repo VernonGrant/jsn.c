@@ -24,10 +24,22 @@
  * Checks that all sample files can be parsed.
  */
 START_TEST(jsn_from_file_test) {
-    // Insure that all data files can be parsed.
     for (unsigned int i = 0; i < JSN_TESTING_DATA_FILE_COUNT; i++) {
         jsn_handle root_node = jsn_from_file(JSN_TESTING_DATA_FILES_PATHS[i]);
         ck_assert_ptr_nonnull(root_node);
+        jsn_free(root_node);
+    }
+}
+END_TEST
+
+/**
+ * Checks that all sample files can be parsed and written to a file.
+ */
+START_TEST(jsn_to_file_test) {
+    for (unsigned int i = 0; i < JSN_TESTING_DATA_FILE_COUNT; i++) {
+        jsn_handle root_node = jsn_from_file(JSN_TESTING_DATA_FILES_PATHS[i]);
+        ck_assert_ptr_nonnull(root_node);
+        jsn_to_file(root_node, "./data/data_written.json");
         jsn_free(root_node);
     }
 }
@@ -113,6 +125,7 @@ Suite *sample_suite(void) {
     tcase_add_test(tc_core, jsn_from_file_test);
     tcase_add_test(tc_core, jsn_from_file_unknown_file_test);
     tcase_add_test(tc_core, jsn_from_file_bad_file_test);
+    tcase_add_test(tc_core, jsn_to_file_test);
     tcase_add_test(tc_core, jsn_get_test);
     tcase_add_test(tc_core, jsn_get_unknown_key_test);
     suite_add_tcase(s, tc_core);

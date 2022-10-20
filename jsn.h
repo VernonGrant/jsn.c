@@ -17,10 +17,7 @@ void jsn_print(jsn_handle handle);
 /* GENERATING NODE TREE
  * ------------------------------------------------------------------------- */
 
-jsn_handle jsn_from_string(const char *src);
 jsn_handle jsn_from_file(const char *file_path);
-
-char *jsn_to_string(jsn_handle handle); // Not Implemented
 void jsn_to_file(jsn_handle handle, const char *file_path); // Not Implemented
 
 /* SERIALIZATION INTERFACE
@@ -64,4 +61,11 @@ void jsn_set_as_string(jsn_handle handle, const char *value);
 // Free a node.
 void jsn_free(jsn_handle handle);
 
+/* TEMP
+ * ------------------------------------------------------------------------- */
+
+unsigned long int
+jsn_node_string_length(jsn_handle handle, unsigned long int length);
+
 #endif
+

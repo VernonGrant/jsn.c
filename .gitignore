@@ -58,3 +58,6 @@ node_modules/
 # Codelite - Debugger
 .codelite/
 json_c.workspace
+
+# Project
+data/data_written.json

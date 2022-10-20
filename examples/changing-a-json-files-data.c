@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "jsn.h"
+#include "../jsn.h"
 
 int main(int argc, char *argv[]) {
     // Parse the file.

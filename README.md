@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
         jsn_handle version_node = jsn_get(conf, 1, "version");
 
         // Set the node's new value.
-        jsn_set_as_double(version_node, 2.0);
+        jsn_set_as_double(version_node, 1.0);
 
         // Write changes back to file.
         jsn_to_file(conf, "./data/learn.json");
