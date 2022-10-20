@@ -136,7 +136,7 @@ The results of the above code.
 }
 ```
 
-## Header declarations
+## Public Interface
 
 ### Parsing, printing and saving
 
