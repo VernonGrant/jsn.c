@@ -3,7 +3,7 @@ BENCHMARK = ./benchmark/
 
 .PHONY: docs clean serve
 
-test: jsn_test.o jsn.o benchmark.o
+test: jsn_test.o jsn.o
 	$(GCC) -lcheck -o ./bin/jsn_test $^
 	./bin/jsn_test
 

@@ -6,17 +6,19 @@
 /* CONSTANTS:
  * --------------------------------------------------------------------------*/
 
-#define JSN_TESTING_DATA_FILE_COUNT 5
+#define JSN_TESTING_DATA_FILE_COUNT 4
 #define JSN_TESTING_DATA_FILES_PATHS                                      \
-    (char[5][50]) {                                                       \
+    (char[JSN_TESTING_DATA_FILE_COUNT][50]) {                             \
         "./data/data_1.json", "./data/data_2.json", "./data/data_3.json", \
-        "./data/data_4.json", "./data/data_5.json"}
+        "./data/data_4.json"}
 
-#define JSN_TESTING_BAD_DATA_FILE_COUNT 1
+#define JSN_TESTING_BAD_DATA_FILE_COUNT 4
 #define JSN_TESTING_BAD_DATA_FILES_PATHS                                  \
-    (char[1][50]) { "./data/data_bad_1.json", }
+    (char[JSN_TESTING_BAD_DATA_FILE_COUNT][50]) {                         \
+        "./data/data_bad_1.json", "./data/data_bad_2.json",               \
+        "./data/data_bad_3.json", "./data/data_bad_4.json" }
 
-/* PARSER FROM TESTS:
+/* PARSING, PRINTING AND SAVING
  * --------------------------------------------------------------------------*/
 
 /**
@@ -45,16 +47,15 @@ START_TEST(jsn_to_file_test) {
 END_TEST
 
 /**
- * Checks that bad file paths returns NULL.
+ * Checks that bad file paths will cause exit failure.
  */
 START_TEST(jsn_from_file_unknown_file_test) {
     jsn_handle root = jsn_from_file("./data/data_100.json");
-    ck_assert_ptr_null(root);
 }
 END_TEST
 
 /**
- * Checks that file's with syntax errors returns NULL.
+ * Checks that file's with breakable syntax errors will cause exit failure.
  */
 START_TEST(jsn_from_file_bad_file_test) {
     for (unsigned int i = 0; i < JSN_TESTING_BAD_DATA_FILE_COUNT; i++) {
@@ -64,7 +65,7 @@ START_TEST(jsn_from_file_bad_file_test) {
 }
 END_TEST
 
-/* PUBLIC API TESTS:
+/* GETTING AND SETTING
  * -------------------------------------------------------------------------*/
 
 START_TEST(jsn_get_test) {
@@ -92,7 +93,6 @@ START_TEST(jsn_get_test) {
     ck_assert_ptr_nonnull(root);
     root_child = jsn_get(root, 2, "rates", "AFN");
     ck_assert_ptr_nonnull(root);
-
 }
 
 START_TEST(jsn_get_unknown_key_test) {
@@ -119,14 +119,17 @@ Suite *sample_suite(void) {
     TCase *tc_core;
     s = suite_create("JSN");
 
-    /* Core test case */
+    // Core test case
     tc_core = tcase_create("Parsing");
     tcase_add_test(tc_core, jsn_from_file_test);
-    tcase_add_test(tc_core, jsn_from_file_unknown_file_test);
-    tcase_add_test(tc_core, jsn_from_file_bad_file_test);
     tcase_add_test(tc_core, jsn_to_file_test);
     tcase_add_test(tc_core, jsn_get_test);
     tcase_add_test(tc_core, jsn_get_unknown_key_test);
+
+    // Exist tests
+    tcase_add_exit_test(tc_core, jsn_from_file_unknown_file_test, 1);
+    tcase_add_exit_test(tc_core, jsn_from_file_bad_file_test, 1);
+
     suite_add_tcase(s, tc_core);
 
     return s;

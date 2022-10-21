@@ -22,18 +22,14 @@ int main(int argc, char *argv[]) {
     // Parse the file.
     jsn_handle conf = jsn_from_file("./data/learn.json");
 
-    // Will be null if parsing failed.
-    if (conf != NULL) {
+    // Get's the version number node.
+    jsn_handle version_node = jsn_get(conf, 1, "version");
 
-        // Get's the version number node.
-        jsn_handle version_node = jsn_get(conf, 1, "version");
+    // Get's the version number node's double value.
+    version_number = jsn_get_value_double(version_node);
 
-        // Get's the version number node's double value.
-        version_number = jsn_get_value_double(version_node);
-
-        // Frees the entire tree.
-        jsn_free(conf);
-    }
+    // Frees the entire tree.
+    jsn_free(conf);
 
     // Print out the version number.
     printf("The version number is %f\n", version_number);
@@ -52,21 +48,17 @@ int main(int argc, char *argv[]) {
     // Parse the file.
     jsn_handle conf = jsn_from_file("./data/learn.json");
 
-    // Will be null if parsing failed.
-    if (conf != NULL) {
+    // Get's the version number node.
+    jsn_handle version_node = jsn_get(conf, 1, "version");
 
-        // Get's the version number node.
-        jsn_handle version_node = jsn_get(conf, 1, "version");
+    // Set the node's new value.
+    jsn_set_as_double(version_node, 1.0);
 
-        // Set the node's new value.
-        jsn_set_as_double(version_node, 1.0);
+    // Write changes back to file.
+    jsn_to_file(conf, "./data/learn.json");
 
-        // Write changes back to file.
-        jsn_to_file(conf, "./data/learn.json");
-
-        // Frees the entire tree.
-        jsn_free(conf);
-    }
+    // Frees the entire tree.
+    jsn_free(conf);
 
     return 0;
 }
@@ -145,8 +137,8 @@ The results of the above code.
 
 - `jsn_handle jsn_from_file(const char *file_path)`
     - Opens the given JSON file and parses it into a tree structure. It will
-      return NULL if there's any issues opening or parsing the file. Else it
-      will return a handle to the root node.
+      call exit if there's any issues opening or parsing the file. Else it will
+      return a handle to the root node.
 
 - `void jsn_to_file(jsn_handle handle, const char *file_path)`
     - Will write the JSON of the given handle (node) to a file specified by the

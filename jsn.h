@@ -23,7 +23,7 @@ void jsn_print(jsn_handle handle);
 
 /**
  * Opens the given JSON file and parses it into a tree structure. It will
- * return NULL if there's any issues opening or parsing the file. Else it will
+ * call exit if there's any issues opening or parsing the file. Else it will
  * return a handle to the root node.
  */
 jsn_handle jsn_from_file(const char *file_path);
