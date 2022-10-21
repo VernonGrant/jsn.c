@@ -12,7 +12,7 @@ parsing, generating and manipulating configuration files.
 ## Usage
 
 To use **JSN.c** you only need to make use of two files, `jsn.c` and
-`jsn.h`. Here's a few usage examples to get you going.
+`jsn.h`. Here's a few usage examples to get help you get started.
 
 ### 1. Reading a value from JSON file
 
@@ -148,8 +148,7 @@ int main(int argc, char *argv[]) {
     // Let's get an array from the root object other > array-of-numbers.
     jsn_handle array = jsn_get(root, 2, "other", "array-of-numbers");
 
-    // Let's loop through each array item, we know that each array item is of
-    // type int.
+    // Let's loop through each array item, we know that each item is an int.
     for (unsigned int i = 0; i < jsn_array_count(array); i++) {
         // Get the array item from the given index.
         jsn_handle array_item = jsn_get_array_item(array, i);
