@@ -1,3 +1,11 @@
+/**
+ * Author: Vernon Grant
+ * Repository: https://github.com/VernonGrant/jsn.c
+ * License: https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * Created: 2022-10-21
+ **/
+
 #include "jsn.h"
 #include <assert.h>
 #include <ctype.h>
