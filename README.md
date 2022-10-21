@@ -1,8 +1,5 @@
 # JSN.C
 
-**JSN.c** is a simple JSON utility that's intended to be used for
-manipulating configuration files.
-
 ```text
    ####    ####    ##  ##             ####
     ##    ##  ##   ### ##            ##  ##
@@ -11,8 +8,10 @@ manipulating configuration files.
     ##        ##   ## ###            ##
  ## ##    ##  ##   ##  ##     ##     ##  ##
   ###      ####    ##  ##     ##      ####
-
 ```
+
+**JSN.c** is a simple JSON utility that's intended to be used for
+manipulating configuration files.
 
 ## Outstanding tasks (TODO)
 
