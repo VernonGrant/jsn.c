@@ -12,7 +12,6 @@
  */
 typedef struct jsn_node *jsn_handle;
 
-
 /* PARSING, SAVING AND OUTPUTTING FUNCTIONS
  * ------------------------------------------------------------------------- */
 
@@ -33,7 +32,6 @@ jsn_handle jsn_from_file(const char *file_path);
  * given path.
  */
 void jsn_to_file(jsn_handle handle, const char *file_path);
-
 
 /* TREE CREATION AND DELETION FUNCTIONS
  * ------------------------------------------------------------------------- */
@@ -84,6 +82,11 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node);
  * must be of an array type.
  */
 void jsn_array_push(jsn_handle handle, jsn_handle node);
+
+/**
+ * Returns the total number of children of the given handle.
+ */
+unsigned int jsn_array_item_count(jsn_handle handle);
 
 /**
  * Will recursively free the handle (node). Please note, that you should only

@@ -10,7 +10,7 @@
  * --------------------------------------------------------------------------*/
 
 void jsn_report_failure(const char *message) {
-    // TODO: Define better error messages.
+    // Report failures.
     printf("FAILURE: %s\n", message);
     exit(EXIT_FAILURE);
 }
@@ -259,8 +259,6 @@ struct jsn_node {
     char *key;
     enum jsn_node_type type;
     union jsn_node_value value;
-    // TODO Should we remove this? As we can calculate the children.
-    // count at runtime.
     unsigned int children_count;
     struct jsn_node **children;
 };
@@ -974,6 +972,15 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
 
     // Append the node to the provided object.
     jsn_append_node_child(handle, node);
+}
+
+unsigned int jsn_array_item_count(jsn_handle handle) {
+    // If the handle is not for an array, return zero.
+    if (handle->type != JSN_NODE_ARRAY) {
+        return 0;
+    }
+
+    return handle->children_count;
 }
 
 int jsn_get_value_int(jsn_handle handle) { return handle->value.value_integer; }

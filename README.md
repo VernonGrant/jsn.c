@@ -176,6 +176,9 @@ The results of the above code.
     - Will append a node onto the end of an array. The first argument (handle)
       must be of an array type.
 
+- `unsigned int jsn_array_item_count(jsn_handle handle)`
+    - Returns the total number of children of the given handle.
+
 - `void jsn_free(jsn_handle handle)`
     - Will recursively free the handle (node). Please note, that you should
       only every free the root node.
