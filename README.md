@@ -1,15 +1,31 @@
-# JSN.c
+# JSN.C
 
-**JSN.c** is a simple utility intended to be used for reading and manipulating
-small JSON configuration files.
+**JSN.c** is a simple JSON utility that's intended to be used for
+manipulating configuration files.
 
-## Work in progress!
+```text
+   ####    ####    ##  ##             ####
+    ##    ##  ##   ### ##            ##  ##
+    ##    ##       ######            ##
+    ##     ####    ######            ##
+    ##        ##   ## ###            ##
+ ## ##    ##  ##   ##  ##     ##     ##  ##
+  ###      ####    ##  ##     ##      ####
+
+```
+
+## Outstanding tasks (TODO)
+
+- Writing all unit tests.
+- Performance optimizations.
+- Perform final code refactoring and cleanup.
 
 ## Usage
 
-Here's a few examples of how to use the utility.
+To use **JSN.c** you only need to make use of two files, `jsn.c` and
+`jsn.h`. Here's a few usage examples to get you going.
 
-### Reading a value from JSON file
+### 1. Reading a value from JSON file
 
 ```C
 #include <stdio.h>
@@ -38,7 +54,7 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### Reading and updating a JSON file
+### 2. Reading and updating a JSON file
 
 ```C
 #include <stdlib.h>
@@ -64,7 +80,7 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### Creating a JSON object via code and writing it to a file
+### 3. Creating a JSON object via code and writing it to a file
 
 ```C
 #include "jsn.h"
@@ -128,7 +144,7 @@ The results of the above code.
 }
 ```
 
-### Looping through an arrays items
+### 4. Looping through an arrays items
 
 ```C
 #include <stdlib.h>
