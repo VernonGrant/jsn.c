@@ -1,10 +1,17 @@
-#include <time.h>
-#include <sys/resource.h>
-#include <unistd.h>
-#include <time.h>
-#include <stdlib.h>
-#include <stdio.h>
+/**
+ * Author: Vernon Grant
+ * Repository: https://github.com/VernonGrant/jsn.c
+ * License: https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * Created: 2022-10-21
+ **/
+
 #include "benchmark.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/resource.h>
+#include <time.h>
+#include <unistd.h>
 
 static clock_t benchmark_clock;
 
@@ -45,4 +52,3 @@ void jsn_benchmark_end(const char *log_prefix) {
     fprintf(f, "%s | %f seconds.\n", log_prefix, elapsed_time);
     fclose(f);
 }
-

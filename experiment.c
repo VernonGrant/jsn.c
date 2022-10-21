@@ -1,6 +1,14 @@
-#include <stdlib.h>
-#include <stdio.h>
+/**
+ * Author: Vernon Grant
+ * Repository: https://github.com/VernonGrant/jsn.c
+ * License: https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * Created: 2022-10-21
+ **/
+
 #include "jsn.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 int main(int argc, char *argv[]) {
 
@@ -17,7 +25,8 @@ int main(int argc, char *argv[]) {
         jsn_handle array_item = jsn_get_array_item(array, i);
 
         // Print out the number.
-        printf("This array item's number is: %u \n", jsn_get_value_int(array_item));
+        printf("This array item's number is: %u \n",
+               jsn_get_value_int(array_item));
     }
 
     return EXIT_SUCCESS;

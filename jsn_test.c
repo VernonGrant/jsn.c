@@ -1,3 +1,11 @@
+/**
+ * Author: Vernon Grant
+ * Repository: https://github.com/VernonGrant/jsn.c
+ * License: https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * Created: 2022-10-21
+ **/
+
 #include "./jsn.h"
 #include <check.h>
 #include <stdio.h>
@@ -7,16 +15,18 @@
  * --------------------------------------------------------------------------*/
 
 #define JSN_TESTING_DATA_FILE_COUNT 4
-#define JSN_TESTING_DATA_FILES_PATHS                                      \
-    (char[JSN_TESTING_DATA_FILE_COUNT][50]) {                             \
-        "./data/data_1.json", "./data/data_2.json", "./data/data_3.json", \
-        "./data/data_4.json"}
+#define JSN_TESTING_DATA_FILES_PATHS                                           \
+    (char[JSN_TESTING_DATA_FILE_COUNT][50]) {                                  \
+        "./data/data_1.json", "./data/data_2.json", "./data/data_3.json",      \
+            "./data/data_4.json"                                               \
+    }
 
 #define JSN_TESTING_BAD_DATA_FILE_COUNT 4
-#define JSN_TESTING_BAD_DATA_FILES_PATHS                                  \
-    (char[JSN_TESTING_BAD_DATA_FILE_COUNT][50]) {                         \
-        "./data/data_bad_1.json", "./data/data_bad_2.json",               \
-        "./data/data_bad_3.json", "./data/data_bad_4.json" }
+#define JSN_TESTING_BAD_DATA_FILES_PATHS                                       \
+    (char[JSN_TESTING_BAD_DATA_FILE_COUNT][50]) {                              \
+        "./data/data_bad_1.json", "./data/data_bad_2.json",                    \
+            "./data/data_bad_3.json", "./data/data_bad_4.json"                 \
+    }
 
 /* PARSING, PRINTING AND SAVING
  * --------------------------------------------------------------------------*/

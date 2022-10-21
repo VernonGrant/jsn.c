@@ -1,9 +1,16 @@
-#include "jsn.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <limits.h>
+/**
+ * Author: Vernon Grant
+ * Repository: https://github.com/VernonGrant/jsn.c
+ * License: https://www.gnu.org/licenses/gpl-3.0.en.html
+ *
+ * Created: 2022-10-21
+ **/
 
-// Development use only.
+#include "jsn.h"
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "benchmark/benchmark.h"
 
 int main(int argc, char *argv[]) {
@@ -15,7 +22,7 @@ int main(int argc, char *argv[]) {
     jsn_handle canada = jsn_from_file("./benchmark/canada.json");
     jsn_benchmark_end("Parsing of ./benchmark/canada.json      ");
 
-    // Citm Catelog benchmark.
+    // Citm Catalog benchmark.
     jsn_benchmark_start();
     jsn_handle citm = jsn_from_file("./benchmark/citm_catalog.json");
     jsn_benchmark_end("Parsing of ./benchmark/citm_catalog.json");

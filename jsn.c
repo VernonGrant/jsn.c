@@ -602,7 +602,8 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
         }
 
         // Copy over key.
-        child_node->key = strncpy(key, token_key.lexeme_start, token_key.lexeme_length);
+        child_node->key =
+            strncpy(key, token_key.lexeme_start, token_key.lexeme_length);
         child_node->key[token_key.lexeme_length] = '\0';
 
         // Append the child node.
@@ -924,7 +925,7 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
 void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Make sure were dealing with an object handle type here.
     if (handle->type != JSN_NODE_OBJECT) {
-        jsn_report_failure( "The handle is not an object.");
+        jsn_report_failure("The handle is not an object.");
         return;
     }
 

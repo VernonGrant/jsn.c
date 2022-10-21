@@ -1,5 +1,5 @@
-#ifndef JSON_H
-#define JSON_H
+#ifndef JSN_H
+#define JSN_H
 
 /**
  * Author: Vernon Grant
