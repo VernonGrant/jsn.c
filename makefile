@@ -20,9 +20,9 @@ benchmark-results: benchmark-results.c jsn.o benchmark.o
 	$(GCC) -lcheck -o ./bin/benchmark $^
 	./bin/benchmark
 
-play: play.c jsn.o benchmark.o
-	$(GCC) -lcheck -o ./bin/play $^
-	./bin/play
+experiment: experiment.c jsn.o benchmark.o
+	$(GCC) -lcheck -o ./bin/experiment $^
+	./bin/experiment
 
 clean:
 	rm -f *.o

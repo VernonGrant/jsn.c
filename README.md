@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
     // Print out the version number.
     printf("The version number is %f\n", version_number);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 ```
 
@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     // Frees the entire tree.
     jsn_free(conf);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 ```
 
@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
     // object, they will all get freed recursively.
     jsn_free(main_object);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 ```
 
@@ -126,6 +126,44 @@ The results of the above code.
         "children": null
     }
 }
+```
+
+### Looping through an arrays items
+
+```C
+#include <stdlib.h>
+#include <stdio.h>
+#include "jsn.h"
+
+int main(int argc, char *argv[]) {
+
+    // Parse the JSON file.
+    jsn_handle root = jsn_from_file("./data/learn.json");
+
+    // Let's get an array from the root object other > array-of-numbers.
+    jsn_handle array = jsn_get(root, 2, "other", "array-of-numbers");
+
+    // Let's loop through each array item, we know that each array item is of
+    // type int.
+    for (unsigned int i = 0; i < jsn_array_count(array); i++) {
+        // Get the array item from the given index.
+        jsn_handle array_item = jsn_get_array_item(array, i);
+
+        // Print out the number.
+        printf("This array item's number is: %u \n", jsn_get_value_int(array_item));
+    }
+
+    return EXIT_SUCCESS;
+}
+```
+
+The above program will output:
+
+```text
+This array item's number is: 10
+This array item's number is: 20
+This array item's number is: 30
+This array item's number is: 40
 ```
 
 ## Public Interface
@@ -176,7 +214,7 @@ The results of the above code.
     - Will append a node onto the end of an array. The first argument (handle)
       must be of an array type.
 
-- `unsigned int jsn_array_item_count(jsn_handle handle)`
+- `unsigned int jsn_array_count(jsn_handle handle)`
     - Returns the total number of children of the given handle.
 
 - `void jsn_free(jsn_handle handle)`

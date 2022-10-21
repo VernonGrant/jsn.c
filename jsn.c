@@ -894,7 +894,7 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
     }
 
     // Make sure the provided index is not larger then the array itself.
-    if (handle->children_count > (index + 1)) {
+    if ((index + 1) > handle->children_count) {
         jsn_report_failure("The given index is larger then the array.");
         return NULL;
     }
@@ -974,7 +974,7 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
     jsn_append_node_child(handle, node);
 }
 
-unsigned int jsn_array_item_count(jsn_handle handle) {
+unsigned int jsn_array_count(jsn_handle handle) {
     // If the handle is not for an array, return zero.
     if (handle->type != JSN_NODE_ARRAY) {
         return 0;

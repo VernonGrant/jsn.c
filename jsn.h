@@ -86,7 +86,7 @@ void jsn_array_push(jsn_handle handle, jsn_handle node);
 /**
  * Returns the total number of children of the given handle.
  */
-unsigned int jsn_array_item_count(jsn_handle handle);
+unsigned int jsn_array_count(jsn_handle handle);
 
 /**
  * Will recursively free the handle (node). Please note, that you should only
