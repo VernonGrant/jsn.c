@@ -43,7 +43,8 @@ enum jsn_token_kind {
 struct jsn_token {
     enum jsn_token_kind type;
     char *lexeme_start;
-    char *lexeme_end; // The ending address, becomes our null terminator.
+    // The ending address, becomes our null terminator.
+    char *lexeme_end;
     unsigned int lexeme_length;
 };
 

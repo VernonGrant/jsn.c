@@ -19,10 +19,14 @@ benchmark.o: $(BENCHMARK)benchmark.c $(BENCHMARK)benchmark.h
 benchmark-results: benchmark-results.c jsn.o benchmark.o
 	$(GCC) -lcheck -o ./bin/benchmark $^
 	./bin/benchmark
+	valgrind --leak-check=full ./bin/benchmark
+	valgrind --tool=massif ./bin/benchmark
 
 experiment: experiment.c jsn.o benchmark.o
 	$(GCC) -lcheck -o ./bin/experiment $^
 	./bin/experiment
+	valgrind --leak-check=full ./bin/experiment
+	valgrind --tool=massif ./bin/experiment
 
 clean:
 	rm -f *.o
