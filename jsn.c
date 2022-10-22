@@ -18,7 +18,6 @@
  * --------------------------------------------------------------------------*/
 
 void jsn_report_failure(const char *message) {
-    // Report failures.
     printf("FAILURE: %s\n", message);
     exit(EXIT_FAILURE);
 }
@@ -302,10 +301,6 @@ void jsn_append_node_child(struct jsn_node *parent, struct jsn_node *child) {
     parent->children[parent->children_count - 1] = child;
 }
 
-/**
- * Will free all the nodes children and set the provided nodes children count
- * to 0.
- */
 void jsn_free_node_children(struct jsn_node *node) {
     // When the node has no children.
     if (node->children_count == 0) {
@@ -390,10 +385,6 @@ struct jsn_node *jsn_get_node_direct_child(jsn_handle handle, const char *key) {
     return NULL;
 }
 
-/**
- * Returns the index of the child node that has the given key. Returns -1 if
- * the there is no direct child with the given key.
- */
 int jsn_get_node_direct_child_index(jsn_handle handle, const char *key) {
     for (unsigned int i = 0; i < handle->children_count; i++) {
         if (handle->children[i]->key != NULL) {
@@ -406,9 +397,6 @@ int jsn_get_node_direct_child_index(jsn_handle handle, const char *key) {
     return -1;
 }
 
-/**
- * Will write out the node tree to a file stream, minified.
- */
 void jsn_node_to_stream(jsn_handle handle, FILE *stream) {
     if (handle->key != NULL) {
         fprintf(stream, "\"%s\":", handle->key);
@@ -904,34 +892,25 @@ jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index) {
     // Make sure were dealing with an array item.
     if (handle->type != JSN_NODE_ARRAY) {
         jsn_report_failure("The given handle is not of ARRAY type.");
-        return NULL;
     }
 
     // Make sure the provided index is not larger then the array itself.
     if ((index + 1) > handle->children_count) {
         jsn_report_failure("The given index is larger then the array.");
-        return NULL;
     }
 
     // Check to make sure the array does in fact have children.
     if (handle->children_count == 0) {
         jsn_report_failure("The given handle has no children.");
-        return NULL;
     }
 
     return handle->children[index];
 }
 
-/**
- * Will append a node to an node of object type. If the object already has a
- * node with the same key, it will get replaced. Keep in mind the replaced
- * node will be freed and set to NULL.
- */
-void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
+jsn_handle jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Make sure were dealing with an object handle type here.
     if (handle->type != JSN_NODE_OBJECT) {
         jsn_report_failure("The handle is not an object.");
-        return;
     }
 
     // Already has a key so we need to free it.
@@ -946,7 +925,6 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     // Check allocation success.
     if (str == NULL) {
         jsn_report_failure("Memory allocation failure.");
-        return;
     }
 
     // Copy over the new key string.
@@ -969,13 +947,14 @@ void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
         // We should append a new node.
         jsn_append_node_child(handle, node);
     }
+
+    return node;
 }
 
-void jsn_array_push(jsn_handle handle, jsn_handle node) {
+jsn_handle jsn_array_push(jsn_handle handle, jsn_handle node) {
     // Make sure were dealing with an array handle type here.
     if (handle->type != JSN_NODE_ARRAY) {
         jsn_report_failure("The given handle is not of ARRAY type.");
-        return;
     }
 
     // Array children nodes, must not have keys. (Not Objects).
@@ -986,6 +965,8 @@ void jsn_array_push(jsn_handle handle, jsn_handle node) {
 
     // Append the node to the provided object.
     jsn_append_node_child(handle, node);
+
+    return node;
 }
 
 unsigned int jsn_array_count(jsn_handle handle) {

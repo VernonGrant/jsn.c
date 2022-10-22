@@ -81,15 +81,16 @@ jsn_handle jsn_create_null();
 
 /**
  * Will append a node onto the provided object (handle) and associates it with
- * the given key. The first argument (handle) must be of an object type.
+ * the given key. The first argument (handle) must be of an object type. It
+ * will return the provided node (value) handle.
  */
-void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node);
+jsn_handle jsn_object_set(jsn_handle handle, const char *key, jsn_handle node);
 
 /**
  * Will append a node onto the end of an array. The first argument (handle)
- * must be of an array type.
+ * must be of an array type. It will return the provided node (value) handle.
  */
-void jsn_array_push(jsn_handle handle, jsn_handle node);
+jsn_handle jsn_array_push(jsn_handle handle, jsn_handle node);
 
 /**
  * Returns the total number of children of the given handle.

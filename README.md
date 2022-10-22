@@ -173,103 +173,172 @@ This array item's number is: 40
 
 ## Public Interface
 
-### Parsing, printing and saving
+```C
+/* HANDLE DEFINITION.
+ * ------------------------------------------------------------------------- */
 
-- `void jsn_print(jsn_handle handle)`
-    - Prints the JSON of the provided handle (node).
+/**
+ * A handle is just a pointe to a node's struct. The tree structure is made out
+ * of many nodes.
+ */
+typedef struct jsn_node *jsn_handle;
 
-- `jsn_handle jsn_from_file(const char *file_path)`
-    - Opens the given JSON file and parses it into a tree structure. It will
-      call exit if there's any issues opening or parsing the file. Else it will
-      return a handle to the root node.
+/* PARSING, SAVING AND OUTPUTTING FUNCTIONS
+ * ------------------------------------------------------------------------- */
 
-- `void jsn_to_file(jsn_handle handle, const char *file_path)`
-    - Will write the JSON of the given handle (node) to a file specified by the
-      given path.
+/**
+ * Prints the JSON of the provided handle (node).
+ */
+void jsn_print(jsn_handle handle);
 
-### Tree creation and deletion
+/**
+ * Opens the given JSON file and parses it into a tree structure. It will
+ * call exit if there's any issues opening or parsing the file. Else it will
+ * return a handle to the root node.
+ */
+jsn_handle jsn_from_file(const char *file_path);
 
-- `jsn_handle jsn_create_object()`
-    - Creates an empty object node and return's it's handle.
+/**
+ * Will write the JSON of the given handle (node) to a file specified by the
+ * given path.
+ */
+void jsn_to_file(jsn_handle handle, const char *file_path);
 
-- `jsn_handle jsn_create_array()`
-    - Creates an empty array node and return's it's handle.
+/* TREE CREATION AND DELETION FUNCTIONS
+ * ------------------------------------------------------------------------- */
 
-- `jsn_handle jsn_create_integer(int value)`
-    - Creates an integer node and return's it's handle.
+/**
+ * Creates an empty object node and return's it's handle.
+ */
+jsn_handle jsn_create_object();
 
-- `jsn_handle jsn_create_double(double value)`
-    - Creates an double node and return's it's handle.
+/**
+ * Creates an empty array node and return's it's handle.
+ */
+jsn_handle jsn_create_array();
 
-- `jsn_handle jsn_create_string(const char *value)`
-    - Creates an string node and return's it's handle.
+/**
+ * Creates an integer node and return's it's handle.
+ */
+jsn_handle jsn_create_integer(int value);
 
-- `jsn_handle jsn_create_boolean(bool value)`
-    - Creates an boolean node and return's it's handle.
+/**
+ * Creates an double node and return's it's handle.
+ */
+jsn_handle jsn_create_double(double value);
 
-- `jsn_handle jsn_create_null()`
-    - Creates an null node and return's it's handle.
+/**
+ * Creates an string node and return's it's handle.
+ */
+jsn_handle jsn_create_string(const char *value);
 
-- `void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node)`
-    - Will append a node onto the provided object (handle) and associates it
-      with the given key. The first argument (handle) must be of an object
-      type.
+/**
+ * Creates an boolean node and return's it's handle.
+ */
+jsn_handle jsn_create_boolean(bool value);
 
-- `void jsn_array_push(jsn_handle handle, jsn_handle node)`
-    - Will append a node onto the end of an array. The first argument (handle)
-      must be of an array type.
+/**
+ * Creates an null node and return's it's handle.
+ */
+jsn_handle jsn_create_null();
 
-- `unsigned int jsn_array_count(jsn_handle handle)`
-    - Returns the total number of children of the given handle.
+/**
+ * Will append a node onto the provided object (handle) and associates it with
+ * the given key. The first argument (handle) must be of an object type. It
+ * will return the provided node (value) handle.
+ */
+jsn_handle jsn_object_set(jsn_handle handle, const char *key, jsn_handle node);
 
-- `void jsn_free(jsn_handle handle)`
-    - Will recursively free the handle (node). Please note, that you should
-      only every free the root node.
+/**
+ * Will append a node onto the end of an array. The first argument (handle)
+ * must be of an array type. It will return the provided node (value) handle.
+ */
+jsn_handle jsn_array_push(jsn_handle handle, jsn_handle node);
 
-### Getting and setting
+/**
+ * Returns the total number of children of the given handle.
+ */
+unsigned int jsn_array_count(jsn_handle handle);
 
-- `jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...)`
-    - Returns a handle to an objects child node that matching the provided key
-      hierarchy.
+/**
+ * Will recursively free the handle (node). Please note, that you should only
+ * every free the root node.
+ */
+void jsn_free(jsn_handle handle);
 
-- `jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index)`
-    - Returns a handle to an array child node, at the given index.
+/* GETTING AND SETTING FUNCTIONS
+ * ------------------------------------------------------------------------- */
 
-- `int jsn_get_value_int(jsn_handle handle)`
-    - Get a nodes integer value.
+/**
+ * Returns a handle to an objects child node that matching the provided key
+ * hierarchy.
+ */
+jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...);
 
-- `bool jsn_get_value_bool(jsn_handle handle)`
-    - Get a nodes boolean value.
+/**
+ * Returns a handle to an array child node, at the given index.
+ */
+jsn_handle jsn_get_array_item(jsn_handle handle, unsigned int index);
 
-- `double jsn_get_value_double(jsn_handle handle)`
-    - Get a nodes double value.
+/**
+ * Get a nodes integer value.
+ */
+int jsn_get_value_int(jsn_handle handle);
 
-- `const char *jsn_get_value_string(jsn_handle handle)`
-    - Get a nodes string value.
+/**
+ * Get a nodes boolean value.
+ */
+bool jsn_get_value_bool(jsn_handle handle);
 
-- `bool jsn_is_value_null(jsn_handle handle)`
-    - Will return true if the handle (node) has a null value/type.
+/**
+ * Get a nodes double value.
+ */
+double jsn_get_value_double(jsn_handle handle);
 
-- `void jsn_set_as_object(jsn_handle handle)`
-    - Set's the given handle (node) as an object. Will change it's type if the
-      handle is not of an object type.
+/**
+ * Get a nodes string value.
+ */
+const char *jsn_get_value_string(jsn_handle handle);
 
-- `void jsn_set_as_array(jsn_handle handle)`
-    - Set's the given handle (node) as an array. Will change it's type if the
-      handle is not of an array type.
+/**
+ * Will return true if the handle (node) has a null value/type.
+ */
+bool jsn_is_value_null(jsn_handle handle);
 
-- `void jsn_set_as_integer(jsn_handle handle, int value)`
-    - Set's the given handle (node) as an integer. Will change it's type if the
-      handle is not of an integer type.
+/**
+ * Set's the given handle (node) as an object. Will mutate it's type if the
+ * handle is not of an object type.
+ */
+void jsn_set_as_object(jsn_handle handle);
 
-- `void jsn_set_as_double(jsn_handle handle, double value)`
-    - Set's the given handle (node) as an double. Will change it's type if the
-      handle is not of an double type.
+/**
+ * Set's the given handle (node) as an array. Will mutate it's type if the
+ * handle is not of an array type.
+ */
+void jsn_set_as_array(jsn_handle handle);
 
-- `void jsn_set_as_boolean(jsn_handle handle, bool value)`
-    - Set's the given handle (node) as an boolean. Will change it's type if the
-      handle is not of an boolean type.
+/**
+ * Set's the given handle (node) as an integer. Will mutate it's type if the
+ * handle is not of an integer type.
+ */
+void jsn_set_as_integer(jsn_handle handle, int value);
 
-- `void jsn_set_as_string(jsn_handle handle, const char *value)`
-    - Set's the given handle (node) as an string. Will change it's type if the
-      handle is not of an string type.
+/**
+ * Set's the given handle (node) as an double. Will mutate it's type if the
+ * handle is not of an double type.
+ */
+void jsn_set_as_double(jsn_handle handle, double value);
+
+/**
+ * Set's the given handle (node) as an boolean. Will mutate it's type if the
+ * handle is not of an boolean type.
+ */
+void jsn_set_as_boolean(jsn_handle handle, bool value);
+
+/**
+ * Set's the given handle (node) as an string. Will mutate it's type if the
+ * handle is not of an string type.
+ */
+void jsn_set_as_string(jsn_handle handle, const char *value);
+
+```

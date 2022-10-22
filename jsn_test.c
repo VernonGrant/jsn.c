@@ -113,23 +113,19 @@ START_TEST(jsn_object_set_test) {
 
     // Integer.
     jsn_object_set(root, "integer-key", jsn_create_integer(5));
-    jsn_handle version_node = jsn_get(root, 1, "integer-key");
-    ck_assert_int_eq(jsn_get_value_int(version_node), 5);
+    ck_assert_int_eq(jsn_get_value_int(jsn_get(root, 1, "integer-key")), 5);
 
     // Double.
     jsn_object_set(root, "double-key", jsn_create_double(1.10));
-    jsn_handle ratio_node = jsn_get(root, 1, "double-key");
-    ck_assert_int_eq(jsn_get_value_double(ratio_node), 1.10);
+    ck_assert_int_eq(jsn_get_value_double(jsn_get(root, 1, "double-key")), 1.10);
 
     // Boolean.
     jsn_object_set(root, "boolean-key", jsn_create_boolean(true));
-    jsn_handle boolean_node = jsn_get(root, 1, "boolean-key");
-    ck_assert_int_eq(jsn_get_value_int(boolean_node), 1);
+    ck_assert_int_eq(jsn_get_value_int(jsn_get(root, 1, "boolean-key")), 1);
 
     // Null.
     jsn_object_set(root, "null-key", jsn_create_null());
-    jsn_handle null_node = jsn_get(root, 1, "null-key");
-    ck_assert_int_eq(jsn_is_value_null(null_node), 1);
+    ck_assert_int_eq(jsn_is_value_null(jsn_get(root, 1, "null-key")), 1);
 
     // String.
     jsn_object_set(root, "string-key", jsn_create_string("My string."));
@@ -169,11 +165,29 @@ START_TEST(jsn_object_set_test) {
     jsn_free(root);
 }
 
+START_TEST(jsn_array_push_and_get_item_test) {
+    jsn_handle root = jsn_create_object();
+
+    // Create an array and append things to it.
+    jsn_handle array = jsn_object_set(root, "array-prop", jsn_create_array());
+    jsn_array_push(array, jsn_create_integer(1));
+    jsn_array_push(array, jsn_create_integer(2));
+    jsn_array_push(array, jsn_create_integer(3));
+    jsn_array_push(array, jsn_create_integer(4));
+    jsn_array_push(array, jsn_create_integer(5));
+
+    jsn_handle array_retrieved = jsn_get(root, 1, "array-prop");
+    ck_assert_int_eq(jsn_get_value_int(jsn_get_array_item(array_retrieved, 0)), 1);
+    ck_assert_int_eq(jsn_get_value_int(jsn_get_array_item(array_retrieved, 1)), 2);
+    ck_assert_int_eq(jsn_get_value_int(jsn_get_array_item(array_retrieved, 2)), 3);
+    ck_assert_int_eq(jsn_get_value_int(jsn_get_array_item(array_retrieved, 3)), 4);
+    ck_assert_int_eq(jsn_get_value_int(jsn_get_array_item(array_retrieved, 4)), 5);
+}
+
 /* INTERNAL TESTS:
  * --------------------------------------------------------------------------*/
 
 Suite *sample_suite(void) {
-
     Suite *s;
     TCase *tc_core;
     s = suite_create("JSN");
@@ -186,6 +200,7 @@ Suite *sample_suite(void) {
     // Getters and setters
     tcase_add_test(tc_core, jsn_get_test);
     tcase_add_test(tc_core, jsn_object_set_test);
+    tcase_add_test(tc_core, jsn_array_push_and_get_item_test);
 
     // Exist tests
     tcase_add_exit_test(tc_core, jsn_get_unknown_key_test, 1);
