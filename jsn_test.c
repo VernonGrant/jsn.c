@@ -58,7 +58,7 @@ END_TEST
  * Checks that bad file paths will cause exit failure.
  */
 START_TEST(jsn_from_file_unknown_file_test) {
-    jsn_handle root = jsn_from_file("./data/data_100.json");
+    jsn_from_file("./data/data_100.json");
 }
 END_TEST
 
@@ -67,7 +67,7 @@ END_TEST
  */
 START_TEST(jsn_from_file_bad_file_test) {
     for (unsigned int i = 0; i < JSN_TESTING_BAD_DATA_FILE_COUNT; i++) {
-        jsn_handle root = jsn_from_file(JSN_TESTING_BAD_DATA_FILES_PATHS[i]);
+        jsn_from_file(JSN_TESTING_BAD_DATA_FILES_PATHS[i]);
     }
 }
 END_TEST
@@ -80,26 +80,17 @@ START_TEST(jsn_get_test) {
 
     // Root level nodes.
     root = jsn_from_file(JSN_TESTING_DATA_FILES_PATHS[0]);
-    ck_assert_ptr_nonnull(root);
 
-    jsn_handle root_child;
-    root_child = jsn_get(root, 1, "height");
-    ck_assert_ptr_nonnull(root_child);
-    root_child = jsn_get(root, 1, "time");
-    ck_assert_ptr_nonnull(root_child);
-    root_child = jsn_get(root, 1, "block_index");
-    ck_assert_ptr_nonnull(root_child);
-    root_child = jsn_get(root, 1, "hash");
-    ck_assert_ptr_nonnull(root_child);
+    // Will fail if a key was not found.
+    jsn_get(root, 1, "height");
+    jsn_get(root, 1, "time");
+    jsn_get(root, 1, "block_index");
+    jsn_get(root, 1, "hash");
 
     // Nested nodes.
     root = jsn_from_file(JSN_TESTING_DATA_FILES_PATHS[1]);
-    ck_assert_ptr_nonnull(root);
-
-    root_child = jsn_get(root, 2, "rates", "USD");
-    ck_assert_ptr_nonnull(root);
-    root_child = jsn_get(root, 2, "rates", "AFN");
-    ck_assert_ptr_nonnull(root);
+    jsn_get(root, 2, "rates", "USD");
+    jsn_get(root, 2, "rates", "AFN");
 
     // Free.
     jsn_free(root);
@@ -108,14 +99,10 @@ START_TEST(jsn_get_test) {
 START_TEST(jsn_get_unknown_key_test) {
     jsn_handle root = jsn_from_file(JSN_TESTING_DATA_FILES_PATHS[0]);
 
-    // Unknown nodes.
-    jsn_handle root_child;
-    root_child = jsn_get(root, 0);
-    ck_assert_ptr_null(root_child);
-    root_child = jsn_get(root, 1, "unknown key");
-    ck_assert_ptr_null(root_child);
-    root_child = jsn_get(root, 2, "unknown key", "unknown key");
-    ck_assert_ptr_null(root_child);
+    // These should all fail.
+    jsn_get(root, 0);
+    jsn_get(root, 1, "unknown key");
+    jsn_get(root, 2, "unknown key", "unknown key");
 
     // Free.
     jsn_free(root);
