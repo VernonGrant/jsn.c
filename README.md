@@ -8,6 +8,7 @@ parsing, generating and manipulating configuration files.
 - Writing all unit tests.
 - Performance optimizations.
 - Perform final code refactoring and cleanup.
+- Allows recursively setting object properties.
 
 ## Usage
 
@@ -209,7 +210,7 @@ This array item's number is: 40
 - `jsn_handle jsn_create_null()`
     - Creates an null node and return's it's handle.
 
-- `void jsn_object_set(jsn_handle handle, const char \*key, jsn_handle node)`
+- `void jsn_object_set(jsn_handle handle, const char *key, jsn_handle node)`
     - Will append a node onto the provided object (handle) and associates it
       with the given key. The first argument (handle) must be of an object
       type.
@@ -245,6 +246,9 @@ This array item's number is: 40
 
 - `const char *jsn_get_value_string(jsn_handle handle)`
     - Get a nodes string value.
+
+- `bool jsn_is_value_null(jsn_handle handle)`
+    - Will return true if the handle (node) has a null value/type.
 
 - `void jsn_set_as_object(jsn_handle handle)`
     - Set's the given handle (node) as an object. Will change it's type if the

@@ -892,6 +892,11 @@ jsn_handle jsn_get(jsn_handle handle, unsigned int arg_count, ...) {
     }
     va_end(args);
 
+    // fail on null
+    if (selected == NULL) {
+        jsn_report_failure("Object does not have the provided key.");
+    }
+
     return selected;
 }
 
@@ -1004,6 +1009,10 @@ bool jsn_get_value_bool(jsn_handle handle) {
 
 const char *jsn_get_value_string(jsn_handle handle) {
     return handle->value.value_string;
+}
+
+bool jsn_is_value_null(jsn_handle handle) {
+    return handle->type == JSN_NODE_NULL;
 }
 
 void jsn_set_as_object(jsn_handle handle) {

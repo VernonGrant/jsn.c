@@ -137,6 +137,11 @@ double jsn_get_value_double(jsn_handle handle);
 const char *jsn_get_value_string(jsn_handle handle);
 
 /**
+ * Will return true if the handle (node) has a null value/type.
+ */
+bool jsn_is_value_null(jsn_handle handle);
+
+/**
  * Set's the given handle (node) as an object. Will mutate it's type if the
  * handle is not of an object type.
  */
