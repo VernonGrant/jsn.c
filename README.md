@@ -5,10 +5,10 @@ parsing, generating and manipulating configuration files.
 
 ## Outstanding tasks (TODO)
 
+- Fix all memory check issues.
 - Writing all unit tests.
 - Performance optimizations.
 - Perform final code refactoring and cleanup.
-- Allows recursively setting object properties.
 
 ## Usage
 

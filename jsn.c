@@ -302,6 +302,7 @@ void jsn_append_node_child(struct jsn_node *parent, struct jsn_node *child) {
     parent->children[parent->children_count - 1] = child;
 }
 
+// TODO: We need to check memory issues here.
 void jsn_free_node_children(struct jsn_node *node) {
     // When the node has no children.
     if (node->children_count == 0) {
@@ -326,6 +327,7 @@ void jsn_free_node_children(struct jsn_node *node) {
             jsn_free_node_children(node->children[i]);
             // Now free all the memory taken by this nodes children.
             free(node->children);
+
             // Reset nodes defaults.
             node->children = NULL;
             node->children_count = 0;
@@ -791,7 +793,7 @@ jsn_handle jsn_from_file(const char *file_path) {
         return NULL;
     }
 
-    // Free the tokenizer source
+    // Free the tokenizer source, because the make copy flag is null.
     free(file_buffer);
     tokenizer.source = NULL;
 
