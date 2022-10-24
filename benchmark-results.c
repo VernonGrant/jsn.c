@@ -14,9 +14,6 @@
 #include "benchmark/benchmark.h"
 
 int main(int argc, char *argv[]) {
-    // Create the main object.
-    jsn_print_memory_usage("Memory at the start:");
-
     // Canada benchmark.
     jsn_benchmark_start();
     jsn_handle canada = jsn_from_file("./benchmark/canada.json");
@@ -31,9 +28,6 @@ int main(int argc, char *argv[]) {
     jsn_benchmark_start();
     jsn_handle twitter = jsn_from_file("./benchmark/twitter.json");
     jsn_benchmark_end("Parsing of ./benchmark/twitter.json     ");
-
-    // Check memory usage.
-    jsn_print_memory_usage("Memory at the end:");
 
     // free.
     jsn_free(canada);

@@ -9,17 +9,9 @@
 #include "benchmark.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/resource.h>
 #include <time.h>
-#include <unistd.h>
 
 static clock_t benchmark_clock;
-
-void jsn_print_memory_usage(const char *message) {
-    struct rusage usage;
-    getrusage(RUSAGE_SELF, &usage);
-    printf("%s: %ld MB!\n", message, (usage.ru_maxrss / 1024));
-}
 
 void jsn_benchmark_start() {
     benchmark_clock = clock();
