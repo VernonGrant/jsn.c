@@ -15,7 +15,7 @@
  * ------------------------------------------------------------------------- */
 
 /**
- * A handle is just a pointe to a node's struct. The tree structure is made out
+ * A handle is just a pointer to a node's struct. The tree structure is made out
  * of many nodes.
  */
 typedef struct jsn_node *jsn_handle;

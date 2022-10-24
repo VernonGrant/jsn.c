@@ -3,17 +3,19 @@
 **JSN.c** is a simple JSON utility that's intended to be used for
 parsing, generating and manipulating configuration files.
 
-## Outstanding tasks (TODO)
+## Outstanding Tasks
 
-- Performance optimizations.
-- Perform final code refactoring and cleanup.
+- [ ] Complete writing all unit tests.
+- [ ] Run heap analysis on node mutating functions.
+- [ ] Perform performance optimizations.
+- [ ] Perform cleanup and refactoring tasks.
 
 ## Usage
 
-To use **JSN.c** you only need to make use of two files, `jsn.c` and
-`jsn.h`.
+To use **JSN.c** you only need to make use of two files, `jsn.c` and `jsn.h`.
+You can basically just include these source files into your project.
 
-### Here some basic usage examples
+## A few basic usage examples:
 
 #### 1. Reading a value from JSON file
 
@@ -28,13 +30,13 @@ int main(int argc, char *argv[]) {
     // Parse the file.
     jsn_handle conf = jsn_from_file("./data/learn.json");
 
-    // Get's the version number node.
+    // Get's the version number property.
     jsn_handle version_node = jsn_get(conf, 1, "version");
 
     // Get's the version number node's double value.
     version_number = jsn_get_value_double(version_node);
 
-    // Frees the entire tree.
+    // We're done, so let's free the used memory.
     jsn_free(conf);
 
     // Print out the version number.
@@ -63,7 +65,7 @@ int main(int argc, char *argv[]) {
     // Write changes back to file.
     jsn_to_file(conf, "./data/learn.json");
 
-    // Frees the entire tree.
+    // We're done, so let's free the used memory.
     jsn_free(conf);
 
     return EXIT_SUCCESS;
@@ -167,9 +169,9 @@ int main(int argc, char *argv[]) {
         printf("This array item's number is: %u \n", jsn_get_value_int(array_item));
     }
 
-    // We're done, so let's free the used memory. We only need to free the
-    // main object, as all other node's have already been appended to the main
-    // object, they will all get freed recursively.
+    // We're done, so let's free the used memory. We only need to free the root
+    // handle, as all other node's have already been appended, they will all get
+    // freed recursively.
     jsn_free(root);
 
     return EXIT_SUCCESS;
@@ -192,7 +194,7 @@ This array item's number is: 40
  * ------------------------------------------------------------------------- */
 
 /**
- * A handle is just a pointe to a node's struct. The tree structure is made out
+ * A handle is just a pointer to a node's struct. The tree structure is made out
  * of many nodes.
  */
 typedef struct jsn_node *jsn_handle;
