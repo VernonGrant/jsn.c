@@ -132,15 +132,13 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
 
                 // Skip escape char.
                 if (next_char == '\\') {
-                    tokenizer->source_cursor++;
-                    tokenizer->source_cursor++;
+                    tokenizer->source_cursor += 2;
                     continue;
                 }
 
                 // Skip escape char.
                 if (next_char == '"') {
-                    tokenizer->source_cursor++;
-                    tokenizer->source_cursor++;
+                    tokenizer->source_cursor += 2;
                     continue;
                 }
             }
