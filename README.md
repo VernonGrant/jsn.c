@@ -13,6 +13,7 @@ generating and manipulating configuration files.
 
 ## Outstanding Tasks
 
+- [ ] Add exponent support.
 - [ ] Complete writing all unit tests.
 - [ ] Run heap analysis on node mutating functions.
 - [ ] Perform final performance optimizations.
