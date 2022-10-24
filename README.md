@@ -1,7 +1,9 @@
 # JSN.C
 
 **JSN.c** is a simple JSON utility that's intended to be used for
-parsing, generating and manipulating configuration files.
+parsing, generating and manipulating configuration files. The main intention
+was to create something with an simple interface that makes handling JSON
+configuration files easy to handle.
 
 ```
      ██ ███████ ███    ██     ██████
@@ -15,7 +17,7 @@ parsing, generating and manipulating configuration files.
 
 - [ ] Complete writing all unit tests.
 - [ ] Run heap analysis on node mutating functions.
-- [ ] Perform performance optimizations.
+- [ ] Perform final performance optimizations.
 - [ ] Perform refactoring and cleanup tasks.
 
 ## Usage
