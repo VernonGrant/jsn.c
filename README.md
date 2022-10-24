@@ -5,17 +5,17 @@ parsing, generating and manipulating configuration files.
 
 ## Outstanding tasks (TODO)
 
-- Fix all memory check issues.
-- Writing all unit tests.
 - Performance optimizations.
 - Perform final code refactoring and cleanup.
 
 ## Usage
 
 To use **JSN.c** you only need to make use of two files, `jsn.c` and
-`jsn.h`. Here's a few usage examples to get help you get started.
+`jsn.h`.
 
-### 1. Reading a value from JSON file
+### Here some basic usage examples
+
+#### 1. Reading a value from JSON file
 
 ```C
 #include <stdio.h>
@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### 2. Reading and updating a JSON file
+#### 2. Reading and updating a JSON file
 
 ```C
 #include <stdlib.h>
@@ -70,7 +70,16 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-### 3. Creating a JSON object via code and writing it to a file
+#### 3. Creating a JSON object via code and writing it to a file
+
+The below code builds a JSON tree structure and then outputs it to a file. It's
+important to understand the memory management aspect of **JSN.c**, **we should
+only every call `jsn_free` on the up most (root) node** of the structure we are
+working on.
+
+As you can see below, we create many different nodes but we only free the
+`main_object` at the end. This is because `jsn_free` will recursively free the
+entire tree structure.
 
 ```C
 #include "jsn.h"
@@ -107,7 +116,7 @@ int main(int argc, char *argv[]) {
     // Write the main object to a file.
     jsn_to_file(main_object, "./data/data_written.json");
 
-    // Print out the JSON.
+    // Print out the JSON, just for fun.
     jsn_print(main_object);
 
     // We're done, so let's free the used memory. We only need to free the
@@ -134,7 +143,7 @@ The results of the above code.
 }
 ```
 
-### 4. Looping through an arrays items
+#### 4. Looping through an arrays items
 
 ```C
 #include <stdlib.h>
@@ -157,6 +166,11 @@ int main(int argc, char *argv[]) {
         // Print out the number.
         printf("This array item's number is: %u \n", jsn_get_value_int(array_item));
     }
+
+    // We're done, so let's free the used memory. We only need to free the
+    // main object, as all other node's have already been appended to the main
+    // object, they will all get freed recursively.
+    jsn_free(root);
 
     return EXIT_SUCCESS;
 }
