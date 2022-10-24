@@ -26,7 +26,7 @@ experiment: experiment.c jsn.o benchmark.o
 	$(GCC) -lcheck -o ./bin/experiment $^
 	./bin/experiment
 	valgrind --leak-check=full ./bin/experiment
-	# valgrind --tool=massif ./bin/experiment
+	valgrind --tool=massif ./bin/experiment
 
 clean:
 	rm -f *.o

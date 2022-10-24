@@ -302,7 +302,6 @@ void jsn_append_node_child(struct jsn_node *parent, struct jsn_node *child) {
     parent->children[parent->children_count - 1] = child;
 }
 
-// TODO: We need to check memory issues here.
 void jsn_free_node_children(struct jsn_node *node) {
     // When the node has no children.
     if (node->children_count == 0) {
@@ -310,34 +309,34 @@ void jsn_free_node_children(struct jsn_node *node) {
     }
 
     // For each child node, starting at the very end.
-    unsigned int i;
-    for (i = node->children_count - 1; i > -1; i--) {
-        // If this node has no children, free it's taken resources.
-        if (node->children[i]->children_count == 0) {
-            // If it's a string, free it.
-            if (node->children[i]->type == JSN_NODE_STRING) {
-                free(node->children[i]->value.value_string);
-            }
-            // If it has a key, free it.
-            if (node->children[i]->key != NULL) {
-                free(node->children[i]->key);
-            }
-        } else {
+    for (unsigned int i = 0; i < node->children_count; i++) {
+        // If it's a string, free it.
+        if (node->children[i]->type == JSN_NODE_STRING) {
+            free(node->children[i]->value.value_string);
+        }
+
+        // If it has a key, free it.
+        if (node->children[i]->key != NULL) {
+            free(node->children[i]->key);
+        }
+
+        // If this node has children, free it's taken resources.
+        if (node->children[i]->children_count > 0) {
             // This node also has it's own children, so recursively continue.
             jsn_free_node_children(node->children[i]);
-            // Now free all the memory taken by this nodes children.
-            free(node->children);
 
-            // Reset nodes defaults.
-            node->children = NULL;
-            node->children_count = 0;
+            // Now free all the memory taken by this nodes children.
+            free(node->children[i]->children);
+            node->children[i]->children = NULL;
+            node->children[i]->children_count = 0;
         }
+
+        // We need to also free this child.
+        free(node->children[i]);
     }
 
     // Now we can free this parents data.
     free(node->children);
-
-    // Reset node defaults.
     node->children = NULL;
     node->children_count = 0;
 }
