@@ -85,8 +85,8 @@ int main(int argc, char *argv[]) {
 
 The below code builds a JSON tree structure and then outputs it to a file. It's
 important to understand the memory management aspect of **JSN.c**, **we should
-only every call `jsn_free` on the up most (root) node** of the structure we are
-working on.
+only every call `jsn_free` on the up most (root) handle**, of the structure we
+are working on.
 
 As you can see below, we create many different nodes but we only free the
 `main_object` at the end. This is because `jsn_free` will recursively free the
