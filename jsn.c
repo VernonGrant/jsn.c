@@ -845,7 +845,7 @@ jsn_handle jsn_create_string(const char *value) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
     // Allocate new string.
-    char *str = malloc(strlen(value) * sizeof(char));
+    char *str = malloc((strlen(value) + 1) * sizeof(char));
 
     // Check allocation success.
     if (str == NULL) {
@@ -922,7 +922,7 @@ jsn_handle jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     }
 
     // Allocate for the nodes new key.
-    char *str = malloc(strlen(key) * sizeof(char));
+    char *str = malloc((strlen(key) + 1) * sizeof(char));
 
     // Check allocation success.
     if (str == NULL) {
@@ -1047,7 +1047,7 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
 
     // Set the node's new type and value.
     handle->type = JSN_NODE_STRING;
-    unsigned int str_len = strlen(value) + 1;
+    unsigned long str_len = strlen(value) + 1;
 
     // Allocate for new string.
     char *str = malloc(str_len * sizeof(char));
