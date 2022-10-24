@@ -3,17 +3,26 @@
 **JSN.c** is a simple JSON utility that's intended to be used for
 parsing, generating and manipulating configuration files.
 
+```
+     ██ ███████ ███    ██     ██████
+     ██ ██      ████   ██    ██
+     ██ ███████ ██ ██  ██    ██
+██   ██      ██ ██  ██ ██    ██
+ █████  ███████ ██   ████ ██  ██████
+```
+
 ## Outstanding Tasks
 
 - [ ] Complete writing all unit tests.
 - [ ] Run heap analysis on node mutating functions.
 - [ ] Perform performance optimizations.
-- [ ] Perform cleanup and refactoring tasks.
+- [ ] Perform refactoring and cleanup tasks.
 
 ## Usage
 
 To use **JSN.c** you only need to make use of two files, `jsn.c` and `jsn.h`.
-You can basically just include these source files into your project.
+You can basically just include the source file and make use of the header as
+needed.
 
 ## A few basic usage examples:
 
