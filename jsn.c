@@ -42,23 +42,19 @@ enum jsn_token_kind {
 
 struct jsn_token {
     enum jsn_token_kind type;
+    // The starting and ending addresses of the lexeme.
     char *lexeme_start;
-    // The ending address, becomes our null terminator.
     char *lexeme_end;
     unsigned int lexeme_length;
 };
 
 struct jsn_tokenizer {
-    // Points to source starting point.
     char *source;
     unsigned int source_cursor;
 };
 
 /**
  * Source string needs to have a null terminator.
- *
- * Initialized the tokenizer, the passed in char pointer should point to
- * malloced memory.
  */
 struct jsn_tokenizer
 jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
@@ -740,12 +736,8 @@ void jsn_print(jsn_handle handle) {
 }
 
 jsn_handle jsn_from_file(const char *file_path) {
-    // TODO: Note there's a file size limit here for fseek and fread.
-    // TODO: Will require a more sophisticated solution.
-    FILE *file_ptr;
-
     // Open the file.
-    file_ptr = fopen(file_path, "r");
+    FILE *file_ptr = fopen(file_path, "r");
 
     // In case the file can't be read, report and return null.
     if (file_ptr == NULL) {
@@ -801,10 +793,8 @@ jsn_handle jsn_from_file(const char *file_path) {
 }
 
 void jsn_to_file(jsn_handle handle, const char *file_path) {
-    FILE *file_ptr;
-
     // Open the file.
-    file_ptr = fopen(file_path, "w");
+    FILE *file_ptr = fopen(file_path, "w");
 
     // Write the tree to a stream.
     jsn_node_to_stream(handle, file_ptr);
