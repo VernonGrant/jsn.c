@@ -29,7 +29,7 @@ void jsn_benchmark_end(const char *log_prefix) {
     printf("---------------------------------------------------------------\n");
 
     // Write the result to a file.
-    FILE *f = fopen("benchmark-results.txt", "a");
+    FILE *f = fopen("./benchmark/results.txt", "a");
 
     if (f == NULL) {
         printf("Error opening file!\n");
@@ -44,3 +44,4 @@ void jsn_benchmark_end(const char *log_prefix) {
     fprintf(f, "%s | %f seconds.\n", log_prefix, elapsed_time);
     fclose(f);
 }
+

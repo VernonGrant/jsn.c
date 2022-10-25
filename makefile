@@ -13,13 +13,13 @@ test: jsn_test.o jsn.o
 	$(GCC) -lcheck -o ./bin/jsn_test $^
 	./bin/jsn_test
 
-benchmark.o: $(BENCHMARK)benchmark.c $(BENCHMARK)benchmark.h
-	$(GCC) -c $<
+benchmark-utils.o: $(BENCHMARK)utils/benchmark.c $(BENCHMARK)utils/benchmark.h
+	$(GCC) -o $@ -c $<
 
-benchmark-results: benchmark-results.c jsn.o benchmark.o
-	$(GCC) -lcheck -o ./bin/benchmark $^
-	./bin/benchmark
-	valgrind --leak-check=full ./bin/benchmark
+benchmark-runner: $(BENCHMARK)benchmark-runner.c jsn.o benchmark-utils.o
+	$(GCC) -lcheck -o ./bin/benchmark-runner $^
+	./bin/benchmark-runner
+	valgrind --leak-check=full ./bin/benchmark-runner
 
 experiment: experiment.c jsn.o benchmark.o
 	$(GCC) -lcheck -o ./bin/experiment $^
