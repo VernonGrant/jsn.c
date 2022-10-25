@@ -63,7 +63,7 @@ jsn_tokenizer_init(char *source, unsigned int source_length, bool make_copy) {
 
     if (make_copy) {
         // Allocate for source string.
-        char *src = malloc(source_length * sizeof(char));
+        char *src = malloc(source_length);
 
         // Check allocation success.
         if (src == NULL) {
@@ -452,7 +452,7 @@ struct jsn_node *jsn_parse_string(struct jsn_tokenizer *tokenizer,
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
     // Allocate string space.
-    char *str = malloc((token.lexeme_length + 1) * sizeof(char));
+    char *str = malloc(token.lexeme_length + 1);
 
     // Check allocation success.
     if (str == NULL) {
@@ -577,7 +577,7 @@ struct jsn_node *jsn_parse_object(struct jsn_tokenizer *tokenizer,
         child_node = jsn_parse_value(tokenizer, token_val);
 
         // Allocate memory.
-        char *key = malloc((token_key.lexeme_length + 1) * sizeof(char));
+        char *key = malloc(token_key.lexeme_length + 1);
 
         // Check allocation success.
         if (key == NULL) {
@@ -751,7 +751,7 @@ jsn_handle jsn_from_file(const char *file_path) {
     fseek(file_ptr, 0, SEEK_SET);
 
     // Allocate and copy file source into a temp buffer.
-    char *file_buffer = malloc(file_size * sizeof(char));
+    char *file_buffer = malloc(file_size);
 
     // Check allocation success.
     if (file_buffer == NULL) {
@@ -833,7 +833,7 @@ jsn_handle jsn_create_string(const char *value) {
     struct jsn_node *node = jsn_create_node(JSN_NODE_STRING);
 
     // Allocate new string.
-    char *str = malloc((strlen(value) + 1) * sizeof(char));
+    char *str = malloc(strlen(value) + 1);
 
     // Check allocation success.
     if (str == NULL) {
@@ -910,7 +910,7 @@ jsn_handle jsn_object_set(jsn_handle handle, const char *key, jsn_handle node) {
     }
 
     // Allocate for the nodes new key.
-    char *str = malloc((strlen(key) + 1) * sizeof(char));
+    char *str = malloc(strlen(key) + 1);
 
     // Check allocation success.
     if (str == NULL) {
@@ -1038,7 +1038,7 @@ void jsn_set_as_string(jsn_handle handle, const char *value) {
     unsigned long str_len = strlen(value) + 1;
 
     // Allocate for new string.
-    char *str = malloc(str_len * sizeof(char));
+    char *str = malloc(str_len);
 
     // Check allocation success.
     if (str == NULL) {
