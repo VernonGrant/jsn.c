@@ -121,7 +121,7 @@ START_TEST(jsn_object_set_test) {
 
     // Boolean.
     jsn_object_set(root, "boolean-key", jsn_create_boolean(true));
-    ck_assert_int_eq(jsn_get_value_int(jsn_get(root, 1, "boolean-key")), 1);
+    ck_assert_int_eq(jsn_get_value_bool(jsn_get(root, 1, "boolean-key")), true);
 
     // Null.
     jsn_object_set(root, "null-key", jsn_create_null());
