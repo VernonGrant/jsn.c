@@ -42,10 +42,9 @@ enum jsn_token_kind {
 
 struct jsn_token {
     enum jsn_token_kind type;
-    // The starting and ending addresses of the lexeme.
-    char *lexeme_start;
-    char *lexeme_end;
     unsigned int lexeme_length;
+    // The lexeme's starting address, related to file's source code buffer.
+    char *lexeme_start;
 };
 
 struct jsn_tokenizer {
@@ -88,10 +87,10 @@ static inline void jsn_token_set_lexeme_start(struct jsn_token *token,
     token->lexeme_start = &tokenizer->source[tokenizer->source_cursor];
 }
 
-static inline void jsn_token_set_lexeme_end(struct jsn_token *token,
+static inline void jsn_token_set_lexeme_length(struct jsn_token *token,
                                             struct jsn_tokenizer *tokenizer) {
-    token->lexeme_end = &tokenizer->source[tokenizer->source_cursor];
-    token->lexeme_length = token->lexeme_end - token->lexeme_start;
+    char *lexeme_end = &tokenizer->source[tokenizer->source_cursor];
+    token->lexeme_length = lexeme_end - token->lexeme_start;
 }
 
 struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
@@ -99,7 +98,6 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
     struct jsn_token token;
     token.type = JSN_TOC_UNKNOWN;
     token.lexeme_start = NULL;
-    token.lexeme_end = NULL;
 
     // Keep the current token here.
     char current_source_char = tokenizer->source[tokenizer->source_cursor];
@@ -148,7 +146,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         }
 
         // Set lexeme ending null terminator.
-        jsn_token_set_lexeme_end(&token, tokenizer);
+        jsn_token_set_lexeme_length(&token, tokenizer);
 
         // Move the past the ending quote.
         tokenizer->source_cursor++;
@@ -182,7 +180,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         }
 
         // Set lexeme ending null terminator.
-        jsn_token_set_lexeme_end(&token, tokenizer);
+        jsn_token_set_lexeme_length(&token, tokenizer);
         return token;
     }
 
@@ -232,7 +230,7 @@ struct jsn_token jsn_tokenizer_get_next_token(struct jsn_tokenizer *tokenizer) {
         return token;
     }
 
-    jsn_token_set_lexeme_end(&token, tokenizer);
+    jsn_token_set_lexeme_length(&token, tokenizer);
 
     return token;
 }
@@ -259,10 +257,10 @@ union jsn_node_value {
 
 struct jsn_node {
     char *key;
-    enum jsn_node_type type;
     union jsn_node_value value;
-    unsigned int children_count;
     struct jsn_node **children;
+    enum jsn_node_type type;
+    unsigned int children_count;
 };
 
 struct jsn_node *jsn_create_node(enum jsn_node_type type) {
